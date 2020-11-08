@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <iostream>
+
+using namespace std;
 
 Controller::Controller(Model *model, TerminalView *view) : model(model), view(view) {
     if(updateWindowSize() == -1) {
@@ -29,7 +32,6 @@ int Controller::processInput() {
             /* Cursor position escape sequence */
             write(STDOUT_FILENO, "\x1b[H", 3);
             return -1;
-            break;
 
         case HOME_KEY:
             model->setCx(0);
@@ -73,13 +75,16 @@ int Controller::processInput() {
             break;
 
         case ARROW_LEFT:
+        cout << "l" << endl;
             setCursorPosition(c);
             break;
             
         case ARROW_RIGHT:
+            cout << "r" << endl;
             setCursorPosition(c);
             break;
     }
+    cout << "model cx: " << model->getCx() << " model cy: " << model->getCy() << endl;
     return 0;
 }
 
@@ -151,6 +156,7 @@ int Controller::readKey() {
     }
 }
 
+/* Checked */
 void Controller::setCursorPosition(int key) {
     Model::erow *row;
 
@@ -162,19 +168,25 @@ void Controller::setCursorPosition(int key) {
 
     switch (key) {
         case ARROW_LEFT:
-            if(model->getCx() != 0) {
-                model->setCx(model->getCx() - 1);
-            } else if (model->getCy() > 0) {
-                model->setCy(model->getCy() - 1);
-                model->setCx(model->getRow()[model->getCy()].size);
+            {
+                cout << "set left" << endl;
+                if(model->getCx() != 0) {
+                    model->setCx(model->getCx() - 1);
+                } else if (model->getCy() > 0) {
+                    model->setCy(model->getCy() - 1);
+                    model->setCx(model->getRow()[model->getCy()].size);
+                }
             }
             break;
         case ARROW_RIGHT:
-            if(row && model->getCx() < row->size) {
-                model->setCx(model->getCx() + 1);
-            } else if (row && model->getCx() == row->size) {
-                model->setCy(model->getCy() + 1);
-                model->setCx(0);
+            {
+                cout << "set right" << endl;
+                if(row && model->getCx() < row->size) {
+                    model->setCx(model->getCx() + 1);
+                } else if (row && model->getCx() == row->size) {
+                    model->setCy(model->getCy() + 1);
+                    model->setCx(0);
+                }
             }
             break;
         case ARROW_UP:
@@ -198,11 +210,10 @@ void Controller::setCursorPosition(int key) {
     }
 }
 
-int Controller::getCursorPosition(){
+/* Checked */
+int Controller::getCursorPosition(int *rows, int *cols){
    char buf[32];
    unsigned int i = 0;
-   int rows = view->getScreenrows();
-   int cols = view->getScreencols();
 
    /* Device status report (n) with arg 6 for cursor position */
    if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) {
@@ -228,7 +239,7 @@ int Controller::getCursorPosition(){
    }
 
    /* Attempt to skip over \x1b and [ sequence to get row and col values */
-   if (sscanf(&buf[2], "%d;%d", &rows, &cols) != 2) {
+   if (sscanf(&buf[2], "%d;%d", rows, cols) != 2) {
       return -1;
    }
 
@@ -244,7 +255,14 @@ int Controller::updateWindowSize(){
             return -1;
         }
         /* Get window size from cursor at bottom right */
-        return getCursorPosition();
+        int rows;
+        int cols;
+        if(getCursorPosition(&rows, &cols) != -1){
+            view->setScreencols(cols);
+            view->setScreenrows(rows);
+            return 0;
+        }
+        return -1;
     }
     else {
         /* Gather window size info if window size succeeded */
@@ -254,6 +272,7 @@ int Controller::updateWindowSize(){
     }
 }
 
+/* Checked */
 void Controller::scroll() {
    model->setRx(0);
    if(model->getCy() < model->getNumrows()) {

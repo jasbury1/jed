@@ -160,6 +160,3 @@ void TerminalView::abAppend(TerminalView::abuf *ab, const char *s, int len) {
 void TerminalView::abFree(abuf *ab) {
    free(ab->b);
 }
-
-
-

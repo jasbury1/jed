@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <memory.h>
+#include <stdarg.h>
 
 Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), numrows(0),
         row(NULL), filename(NULL) {
@@ -82,4 +83,12 @@ void Model::appendRow(char *s, size_t len) {
    updateRow(&row[at]);
 
    numrows++;
+}
+
+void Model::setStatusMessage(const char *fmt, ...) {
+   va_list ap;
+   va_start(ap, fmt);
+   vsnprintf(statusmsg, sizeof(statusmsg), fmt, ap);
+   va_end(ap);
+   statusmsg_time = time(NULL);
 }

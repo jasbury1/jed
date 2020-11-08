@@ -19,6 +19,8 @@ public:
     Model();
     ~Model();
 
+    void setStatusMessage(const char *fmt, ...);
+
     int getCx(){return cx;}
     void setCx(int _cx){cx = _cx;}
 

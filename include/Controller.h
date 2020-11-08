@@ -26,7 +26,7 @@ public:
     int processInput();
     int readKey();
     void setCursorPosition(int key);
-    int getCursorPosition();
+    int getCursorPosition(int *rows, int *cols);
     int updateWindowSize();
     void scroll();
     int rowCxToRx(Model::erow *row, int cx);

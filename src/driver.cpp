@@ -20,6 +20,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    model->setStatusMessage("Help: Ctrl-Q = quit");
+
     while(true) {
         view->draw();
         if(controller->processInput() == -1) {
