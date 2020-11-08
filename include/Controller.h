@@ -23,7 +23,7 @@ public:
         PAGE_DOWN
     };
 
-    void processInput();
+    int processInput();
     int readKey();
     void setCursorPosition(int key);
     int getCursorPosition();

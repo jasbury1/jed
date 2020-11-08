@@ -17,7 +17,7 @@ Controller::~Controller() {
 
 }
 
-void Controller::processInput() {
+int Controller::processInput() {
     scroll();
 
     int c = readKey();
@@ -28,7 +28,7 @@ void Controller::processInput() {
             write(STDOUT_FILENO, "\x1b[2J", 4);
             /* Cursor position escape sequence */
             write(STDOUT_FILENO, "\x1b[H", 3);
-            /* TODO: exit */
+            return -1;
             break;
 
         case HOME_KEY:
@@ -42,31 +42,45 @@ void Controller::processInput() {
             break;
 
         case PAGE_UP:
-        case PAGE_DOWN:
             {
-                if(c == PAGE_UP) {
-                    model->setCy(model->getRowoff());
-                } else if (c == PAGE_DOWN) {
-                    model->setCy(model->getRowoff() + view->getScreenrows() - 1);
-                    if(model->getCy() > model->getNumrows()) {
-                        model->setCy(model->getNumrows());
-                    }
-                }
-
+                model->setCy(model->getRowoff());
                 int times = view->getScreenrows();
                 while (times--) {
-                    setCursorPosition(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+                    setCursorPosition(ARROW_UP);
                 }
-                break;
             }
+            break;
+
+        case PAGE_DOWN:
+            {
+                model->setCy(model->getRowoff() + view->getScreenrows() - 1);
+                if(model->getCy() > model->getNumrows()) {
+                    model->setCy(model->getNumrows());
+                }
+                int times = view->getScreenrows();
+                while (times--) {
+                    setCursorPosition(ARROW_DOWN);
+                }
+            }
+            break;
 
         case ARROW_UP:
+            setCursorPosition(c);
+            break;
+
         case ARROW_DOWN:
+            setCursorPosition(c);
+            break;
+
         case ARROW_LEFT:
+            setCursorPosition(c);
+            break;
+            
         case ARROW_RIGHT:
             setCursorPosition(c);
             break;
     }
+    return 0;
 }
 
 int Controller::readKey() {

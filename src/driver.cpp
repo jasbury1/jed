@@ -22,7 +22,12 @@ int main(int argc, char *argv[]) {
 
     while(true) {
         view->draw();
-        controller->processInput();
+        if(controller->processInput() == -1) {
+            delete model;
+            delete view;
+            delete controller;
+            return 0;
+        }
     }
 
 }
