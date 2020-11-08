@@ -4,7 +4,9 @@
 class View {
 public:
     virtual void draw() = 0;
-    virtual int getWindowSize(int *rows, int *cols) = 0;
+
+protected:
+
 };
 
 #endif /* VIEW_H */

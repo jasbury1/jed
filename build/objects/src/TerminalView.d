@@ -1,2 +1,2 @@
 build/objects/src/TerminalView.o: src/TerminalView.cpp \
-  include/TerminalView.h include/View.h
+  include/TerminalView.h include/View.h include/Model.h

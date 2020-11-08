@@ -10,11 +10,11 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
     Model *model = new Model();
-    View *view = new TerminalView(model);
+    TerminalView *view = new TerminalView(model);
     Controller *controller = new Controller(model, view);
 
     if(argc >= 2) {
-        /* TODO */
+        model->openFile(argv[1]);
     } else {
         /* TODO Error and exit */
         return -1;
