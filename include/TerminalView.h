@@ -1,48 +1,37 @@
 #ifndef TERMINALVIEW_H
 #define TERMINALVIEW_H
 
-#include <termios.h>
-
-#include <View.h>
 #include <Model.h>
 
-#define ABUF_INIT {NULL, 0}
+#define ABUF_INIT \
+    {             \
+        NULL, 0   \
+    }
 
-class TerminalView : public View {
+class TerminalView
+{
+
 public:
-    typedef struct abuf {
+    struct abuf
+    {
         char *b;
         int len;
-    } abuf;
+    };
 
-    void draw();
-    void drawRows(struct abuf *ab);
-    void drawStatusBar(struct abuf *ab);
-    void drawMessageBar(struct abuf *ab);
+    Model *model;
 
     TerminalView(Model *model);
     ~TerminalView();
+    void editorScroll();
+    void editorDrawRows(struct abuf *ab);
+    void editorDrawStatusBar(struct abuf *ab);
+    void editorDrawMessageBar(struct abuf *ab);
+    void editorRefreshScreen();
+    void editorSetStatusMessage(const char *fmt, ...);
+    int editorSyntaxToColor(int hl);
 
-    int getScreenrows(){return screenrows;}
-    void setScreenrows(int r){screenrows = r;}
-
-    int getScreencols(){return screencols;}
-    void setScreencols(int c){screencols = c;}
-
-    void abAppend(abuf *ab, const char *s, int len);
-    void abFree(abuf *ab);
-
-
-private:
-    Model *model;
-    struct termios origTermios;
-
-    int screenrows;
-    int screencols;
-
-    void enableRawMode();
-    void disableRawMode();
+    void abAppend(struct abuf *ab, const char *s, int len);
+    void abFree(struct abuf *ab);
 };
 
-
-#endif /* TERMINALVIEW_H */
+#endif //TERMINALVIEW_H

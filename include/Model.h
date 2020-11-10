@@ -2,71 +2,89 @@
 #define MODEL_H
 
 #include <time.h>
+#include <termios.h>
 
-#define JED_TAB_STOP 8
-#define JED_VERSION "0.0.1"
+#define CTRL_KEY(k) ((k)&0x1f)
 
-class Model {
+#define KILO_VERSION "0.0.1"
+#define KILO_TAB_STOP 8
+#define HL_HIGHLIGHT_NUMBERS (1 << 0)
+#define HL_HIGHLIGHT_STRINGS (1 << 1)
 
+
+class Model
+{
 public:
-    typedef struct erow {
+    enum editorHighlight
+    {
+        HL_NORMAL = 0,
+        HL_COMMENT,
+        HL_MLCOMMENT,
+        HL_KEYWORD1,
+        HL_KEYWORD2,
+        HL_STRING,
+        HL_NUMBER,
+        HL_MATCH
+    };
+
+    typedef struct erow
+    {
+        int idx;
         int size;
         int rsize;
         char *chars;
         char *render;
+        unsigned char *hl;
+        int hl_open_comment;
     } erow;
+
+    struct editorSyntax
+    {
+        char *filetype;
+        char **filematch;
+        char **keywords;
+        char *singleline_comment_start;
+        char *multiline_comment_start;
+        char *multiline_comment_end;
+        int flags;
+    };
+
+    int cx, cy;
+    int rx;
+    int rowoff;
+    int coloff;
+    int screenrows;
+    int screencols;
+    int numrows;
+    erow *row;
+    int dirty;
+    char *filename;
+    char statusmsg[80];
+    time_t statusmsg_time;
+    struct editorSyntax *syntax;
+    struct termios orig_termios;
 
     Model();
     ~Model();
 
-    void setStatusMessage(const char *fmt, ...);
-
-    int getCx(){return cx;}
-    void setCx(int _cx){cx = _cx;}
-
-    int getCy(){return cy;}
-    void setCy(int _cy){cy = _cy;}
-
-    int getRx(){return rx;}
-    void setRx(int _rx){rx = _rx;}
-
-    int getNumrows(){return numrows;}
-    void setNumrows(int n){numrows = n;}
-
-    erow *getRow(){return row;}
-
-    int getRowoff(){return rowoff;}
-    void setRowoff(int r){rowoff = r;}
-
-    int getColoff(){return coloff;}
-    void setColoff(int c){coloff = c;}
-
-    void updateRow(erow *row);
-    void appendRow(char *s, size_t len);
-
-    void openFile(char *filename);
-
-    char *getFilename(){return filename;}
-    char *getStatusmsg(){return statusmsg;}
-    time_t getStatusmsgTime(){return statusmsg_time;}
+    int getWindowSize(int *rows, int *cols);
+    int getCursorPosition(int *rows, int *cols);
+    int editorRowCxToRx(erow *row, int cx);
+    int editorRowRxToCx(erow *row, int rx);
+    void editorUpdateRow(erow *row);
+    void editorInsertRow(int at, char *s, size_t len);
+    void editorFreeRow(erow *row);
+    void editorDelRow(int at);
+    void editorRowInsertChar(erow *row, int at, int c);
+    void editorRowAppendString(erow *row, char *s, size_t len);
+    void editorRowDelChar(erow *row, int at);
+    void editorUpdateSyntax(erow *row);
+    int is_separator(int c);
+    void editorInsertNewline();
+    void editorInsertChar(int c);
+    void editorDelChar();
 
 private:
-
-    int cx, cy;
-    int rx;
-
-    /* offsets for vertical/horizontal scroll */
-    int rowoff;
-    int coloff;
-
-    int numrows;
-
-    /* Array of erow structs */
-    erow *row;
-    char *filename;
-    char statusmsg[80];
-    time_t statusmsg_time;
-
 };
 
-#endif /* MODEL_H */
+#endif //MODEL_H
