@@ -48,26 +48,6 @@ enum editorKey
 Model *model;
 TerminalView *view;
 
-/*** filetypes ***/
-
-char *C_HL_extensions[] = {".c", ".h", ".cpp", NULL};
-char *C_HL_keywords[] = {
-    "switch", "if", "while", "for", "break", "continue", "return", "else",
-    "struct", "union", "typedef", "static", "enum", "class", "case",
-
-    "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|",
-    "void|", NULL};
-
-struct Model::editorSyntax HLDB[] = {
-    {"c",
-     C_HL_extensions,
-     C_HL_keywords,
-     "//", "/*", "*/",
-     HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS},
-};
-
-#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
-
 /*** terminal ***/
 
 void die(const char *s)
@@ -189,40 +169,6 @@ int editorReadKey()
 
 /*** syntax highlighting ***/
 
-
-void editorSelectSyntaxHighlight()
-{
-    model->syntax = NULL;
-    if (model->filename == NULL)
-        return;
-
-    char *ext = strrchr(model->filename, '.');
-
-    for (unsigned int j = 0; j < HLDB_ENTRIES; j++)
-    {
-        struct Model::editorSyntax *s = &HLDB[j];
-        unsigned int i = 0;
-        while (s->filematch[i])
-        {
-            int is_ext = (s->filematch[i][0] == '.');
-            if ((is_ext && ext && !strcmp(ext, s->filematch[i])) ||
-                (!is_ext && strstr(model->filename, s->filematch[i])))
-            {
-                model->syntax = s;
-
-                int filerow;
-                for (filerow = 0; filerow < model->numrows; filerow++)
-                {
-                    model->editorUpdateSyntax(&model->row[filerow]);
-                }
-
-                return;
-            }
-            i++;
-        }
-    }
-}
-
 /*** editor operations ***/
 
 /*** file i/o ***/
@@ -248,32 +194,6 @@ char *editorRowsToString(int *buflen)
     return buf;
 }
 
-void editorOpen(char *filename)
-{
-    free(model->filename);
-    model->filename = strdup(filename);
-
-    editorSelectSyntaxHighlight();
-
-    FILE *fp = fopen(filename, "r");
-    if (!fp)
-        die("fopen");
-
-    char *line = NULL;
-    size_t linecap = 0;
-    ssize_t linelen;
-    while ((linelen = getline(&line, &linecap, fp)) != -1)
-    {
-        while (linelen > 0 && (line[linelen - 1] == '\n' ||
-                               line[linelen - 1] == '\r'))
-            linelen--;
-        model->editorInsertRow(model->numrows, line, linelen);
-    }
-    free(line);
-    fclose(fp);
-    model->dirty = 0;
-}
-
 void editorSave()
 {
     if (model->filename == NULL)
@@ -284,7 +204,7 @@ void editorSave()
             view->editorSetStatusMessage("Save aborted");
             return;
         }
-        editorSelectSyntaxHighlight();
+        model->editorSelectSyntaxHighlight();
     }
 
     int len;
@@ -596,7 +516,7 @@ void editorProcessKeypress()
     quit_times = KILO_QUIT_TIMES;
 }
 
-/*** init ***/
+/*** init ***/  
 
 int main(int argc, char *argv[])
 {
@@ -606,7 +526,7 @@ int main(int argc, char *argv[])
     enableRawMode();
     if (argc >= 2)
     {
-        editorOpen(argv[1]);
+        model->editorOpen(argv[1]);
     }
 
     view->editorSetStatusMessage(

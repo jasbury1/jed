@@ -49,6 +49,10 @@ public:
         int flags;
     };
 
+    static char *C_HL_extensions[4];
+    static char *C_HL_keywords[24];
+    static struct editorSyntax HLDB[1];
+
     int cx, cy;
     int rx;
     int rowoff;
@@ -83,6 +87,8 @@ public:
     void editorInsertNewline();
     void editorInsertChar(int c);
     void editorDelChar();
+    void editorOpen(char *open_file);
+    void editorSelectSyntaxHighlight();
 
 private:
 };

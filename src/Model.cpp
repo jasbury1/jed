@@ -9,6 +9,24 @@
 #include <string.h>
 #include <ctype.h>
 
+
+char *Model::C_HL_extensions[] = {".c", ".h", ".cpp", NULL};
+char *Model::C_HL_keywords[] = {
+    "switch", "if", "while", "for", "break", "continue", "return", "else",
+    "struct", "union", "typedef", "static", "enum", "class", "case",
+
+    "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|",
+    "void|", NULL};
+struct Model::editorSyntax Model::HLDB[] = {
+    {"c",
+     C_HL_extensions,
+     C_HL_keywords,
+     "//", "/*", "*/",
+     HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS},
+};
+
+#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
+
 Model::Model()
 {
     cx = 0;
@@ -412,5 +430,65 @@ void Model::editorDelChar()
         editorRowAppendString(&row[cy - 1], curRow->chars, curRow->size);
         editorDelRow(cy);
         cy--;
+    }
+}
+
+void Model::editorOpen(char *open_file)
+{
+    free(filename);
+    filename = strdup(open_file);
+
+    editorSelectSyntaxHighlight();
+
+    FILE *fp = fopen(open_file, "r");
+    if (!fp){
+        /* TODO DIE */
+    }
+
+    char *line = NULL;
+    size_t linecap = 0;
+    ssize_t linelen;
+    while ((linelen = getline(&line, &linecap, fp)) != -1)
+    {
+        while (linelen > 0 && (line[linelen - 1] == '\n' ||
+                               line[linelen - 1] == '\r'))
+            linelen--;
+        editorInsertRow(numrows, line, linelen);
+    }
+    free(line);
+    fclose(fp);
+    dirty = 0;
+}
+
+void Model::editorSelectSyntaxHighlight()
+{
+    syntax = NULL;
+    if (filename == NULL)
+        return;
+
+    char *ext = strrchr(filename, '.');
+
+    for (unsigned int j = 0; j < HLDB_ENTRIES; j++)
+    {
+        struct Model::editorSyntax *s = &HLDB[j];
+        unsigned int i = 0;
+        while (s->filematch[i])
+        {
+            int is_ext = (s->filematch[i][0] == '.');
+            if ((is_ext && ext && !strcmp(ext, s->filematch[i])) ||
+                (!is_ext && strstr(filename, s->filematch[i])))
+            {
+                syntax = s;
+
+                int filerow;
+                for (filerow = 0; filerow < numrows; filerow++)
+                {
+                    editorUpdateSyntax(&row[filerow]);
+                }
+
+                return;
+            }
+            i++;
+        }
     }
 }
