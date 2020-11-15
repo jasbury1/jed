@@ -29,6 +29,8 @@ public:
     void editorRefreshScreen();
     void editorSetStatusMessage(const char *fmt, ...);
     int editorSyntaxToColor(int hl);
+    void disableRawMode();
+    void enableRawMode();
 
     void abAppend(struct abuf *ab, const char *s, int len);
     void abFree(struct abuf *ab);

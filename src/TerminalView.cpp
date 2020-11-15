@@ -8,11 +8,11 @@
 #include <unistd.h>
 
 TerminalView::TerminalView(Model *model) : model(model){
-    
+    enableRawMode();
 }
 
 TerminalView::~TerminalView(){
-     
+     disableRawMode();
 }
 
 
@@ -236,6 +236,33 @@ int TerminalView::editorSyntaxToColor(int hl)
         return 34;
     default:
         return 37;
+    }
+}
+
+
+void TerminalView::disableRawMode()
+{
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &model->orig_termios) == -1){
+        // TODO: DIE
+    }
+}
+
+void TerminalView::enableRawMode()
+{
+    if (tcgetattr(STDIN_FILENO, &model->orig_termios) == -1){
+        // TODO DIE
+    }
+
+    struct termios raw = model->orig_termios;
+    raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+    raw.c_oflag &= ~(OPOST);
+    raw.c_cflag |= (CS8);
+    raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 1;
+
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1){
+        // TODO DIE
     }
 }
 
