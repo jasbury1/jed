@@ -2,6 +2,7 @@
 #define TERMINALVIEW_H
 
 #include <Model.h>
+#include <memory>
 
 #define ABUF_INIT \
     {             \
@@ -18,9 +19,7 @@ public:
         int len;
     };
 
-    Model *model;
-
-    TerminalView(Model *model);
+    TerminalView(std::shared_ptr<Model>& model);
     ~TerminalView();
     void editorScroll();
     void editorDrawRows(struct abuf *ab);
@@ -34,6 +33,9 @@ public:
 
     void abAppend(struct abuf *ab, const char *s, int len);
     void abFree(struct abuf *ab);
+
+private:
+    std::shared_ptr<Model>& model;
 };
 
 #endif //TERMINALVIEW_H

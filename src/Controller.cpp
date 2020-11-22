@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <memory.h>
 
-Controller::Controller(Model *model, TerminalView *view) : model(model), view(view)
+Controller::Controller(std::shared_ptr<Model>& model, std::shared_ptr<TerminalView>& view) : model(model), view(view)
 {
 }
 

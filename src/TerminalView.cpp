@@ -7,7 +7,7 @@
 #include <ctype.h>
 #include <unistd.h>
 
-TerminalView::TerminalView(Model *model) : model(model){
+TerminalView::TerminalView(std::shared_ptr<Model>& _model) : model(_model){
     enableRawMode();
 }
 

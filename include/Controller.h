@@ -3,13 +3,14 @@
 
 #include <TerminalView.h>
 #include <Model.h>
+#include <memory>
 
 #define KILO_QUIT_TIMES 3
 
 class Controller
 {
 public:
-    Controller(Model *model, TerminalView *view);
+    Controller(std::shared_ptr<Model>& model, std::shared_ptr<TerminalView>& view);
     ~Controller();
 
     enum editorKey
@@ -26,9 +27,6 @@ public:
         PAGE_DOWN
     };
 
-    Model *model;
-    TerminalView *view;
-
     void editorProcessKeypress();
     int editorReadKey();
     void editorMoveCursor(int key);
@@ -40,6 +38,8 @@ public:
 
 
 private:
+    std::shared_ptr<Model>& model;
+    std::shared_ptr<TerminalView>& view;
 };
 
 #endif // CONTROLLER_H

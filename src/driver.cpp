@@ -23,12 +23,6 @@
 
 using namespace std;
 
-/*** data ***/
-
-Model *model;
-TerminalView *view;
-Controller *controller;
-
 /*** terminal ***/
 
 void die(const char *s)
@@ -43,9 +37,9 @@ void die(const char *s)
 
 int main(int argc, char *argv[])
 {
-    model = new Model();
-    view = new TerminalView(model);
-    controller = new Controller(model, view);
+    std::shared_ptr<Model> model(new Model);
+    std::shared_ptr<TerminalView> view(new TerminalView(model));
+    std::shared_ptr<Controller> controller(new Controller(model, view));
 
     if (argc >= 2)
     {
