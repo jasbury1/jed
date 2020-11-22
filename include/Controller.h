@@ -10,7 +10,7 @@
 class Controller
 {
 public:
-    Controller(std::shared_ptr<Model>& model, std::shared_ptr<TerminalView>& view);
+    Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view);
     ~Controller();
 
     enum editorKey
@@ -38,8 +38,8 @@ public:
 
 
 private:
-    std::shared_ptr<Model>& model;
-    std::shared_ptr<TerminalView>& view;
+    std::shared_ptr<Model> model;
+    std::shared_ptr<TerminalView> view;
 };
 
 #endif // CONTROLLER_H

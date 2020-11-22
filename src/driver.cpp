@@ -21,8 +21,6 @@
 #include <TerminalView.h>
 #include <iostream>
 
-using namespace std;
-
 /*** terminal ***/
 
 void die(const char *s)

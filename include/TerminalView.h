@@ -19,7 +19,7 @@ public:
         int len;
     };
 
-    TerminalView(std::shared_ptr<Model>& model);
+    TerminalView(std::shared_ptr<Model> model);
     ~TerminalView();
     void editorScroll();
     void editorDrawRows(struct abuf *ab);
@@ -35,7 +35,7 @@ public:
     void abFree(struct abuf *ab);
 
 private:
-    std::shared_ptr<Model>& model;
+    std::shared_ptr<Model> model;
 };
 
 #endif //TERMINALVIEW_H
