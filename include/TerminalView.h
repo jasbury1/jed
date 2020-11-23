@@ -14,7 +14,6 @@ public:
 private:
     std::shared_ptr<Model> model;
 
-    void editorScroll();
     void editorDrawRows(std::string& displayStr);
     void editorDrawStatusBar(std::string& displayStr);
     void editorDrawMessageBar(std::string& displayStr);

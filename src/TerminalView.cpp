@@ -11,33 +11,6 @@ TerminalView::~TerminalView(){
      disableRawMode();
 }
 
-
-void TerminalView::editorScroll()
-{
-    model->rx = 0;
-    if (model->cy < model->numrows)
-    {
-        model->rx = model->editorRowCxToRx(&model->row[model->cy], model->cx);
-    }
-
-    if (model->cy < model->rowoff)
-    {
-        model->rowoff = model->cy;
-    }
-    if (model->cy >= model->rowoff + model->screenrows)
-    {
-        model->rowoff = model->cy - model->screenrows + 1;
-    }
-    if (model->rx < model->coloff)
-    {
-        model->coloff = model->rx;
-    }
-    if (model->rx >= model->coloff + model->screencols)
-    {
-        model->coloff = model->rx - model->screencols + 1;
-    }
-}
-
 void TerminalView::editorDrawRows(std::string& displayStr)
 {
     int y;
@@ -165,8 +138,6 @@ void TerminalView::editorDrawMessageBar(std::string& displayStr)
 
 void TerminalView::drawScreen()
 {
-    editorScroll();
-
     std::string displayStr = "";
 
     displayStr.append("\x1b[?25l", 6);

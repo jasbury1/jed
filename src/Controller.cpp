@@ -13,11 +13,11 @@ Controller::~Controller()
 {
 }
 
-void Controller::editorProcessKeypress()
+void Controller::processKeypress()
 {
     static int quit_times = KILO_QUIT_TIMES;
 
-    int c = editorReadKey();
+    int c = readKey();
 
     switch (c)
     {
@@ -60,7 +60,7 @@ void Controller::editorProcessKeypress()
     case CTRL_KEY('h'):
     case DEL_KEY:
         if (c == DEL_KEY)
-            editorMoveCursor(ARROW_RIGHT);
+            moveCursor(ARROW_RIGHT);
         model->editorDelChar();
         break;
 
@@ -80,7 +80,7 @@ void Controller::editorProcessKeypress()
 
         int times = model->screenrows;
         while (times--)
-            editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+            moveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
     }
     break;
 
@@ -88,7 +88,7 @@ void Controller::editorProcessKeypress()
     case ARROW_DOWN:
     case ARROW_LEFT:
     case ARROW_RIGHT:
-        editorMoveCursor(c);
+        moveCursor(c);
         break;
 
     case CTRL_KEY('l'):
@@ -101,9 +101,10 @@ void Controller::editorProcessKeypress()
     }
 
     quit_times = KILO_QUIT_TIMES;
+    scroll();
 }
 
-int Controller::editorReadKey()
+int Controller::readKey()
 {
     int nread;
     char c;
@@ -189,7 +190,33 @@ int Controller::editorReadKey()
     }
 }
 
-void Controller::editorMoveCursor(int key)
+void Controller::scroll()
+{
+    model->rx = 0;
+    if (model->cy < model->numrows)
+    {
+        model->rx = model->editorRowCxToRx(&model->row[model->cy], model->cx);
+    }
+
+    if (model->cy < model->rowoff)
+    {
+        model->rowoff = model->cy;
+    }
+    if (model->cy >= model->rowoff + model->screenrows)
+    {
+        model->rowoff = model->cy - model->screenrows + 1;
+    }
+    if (model->rx < model->coloff)
+    {
+        model->coloff = model->rx;
+    }
+    if (model->rx >= model->coloff + model->screencols)
+    {
+        model->coloff = model->rx - model->screencols + 1;
+    }
+}
+
+void Controller::moveCursor(int key)
 {
     Model::erow *row = (model->cy >= model->numrows) ? NULL : &model->row[model->cy];
 
@@ -252,7 +279,7 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
         model->editorSetStatusMessage(prompt, buf);
         view->drawScreen();
 
-        int c = editorReadKey();
+        int c = readKey();
         if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE)
         {
             if (buflen != 0)

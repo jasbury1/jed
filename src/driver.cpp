@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     while (1)
     {
         view->drawScreen();
-        controller->editorProcessKeypress();
+        controller->processKeypress();
     }
 
     return 0;

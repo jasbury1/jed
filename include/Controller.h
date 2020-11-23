@@ -12,6 +12,9 @@ public:
     Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view);
     ~Controller();
 
+    void processKeypress();
+
+private:
     enum editorKey
     {
         BACKSPACE = 127,
@@ -26,19 +29,17 @@ public:
         PAGE_DOWN
     };
 
-    void editorProcessKeypress();
-    int editorReadKey();
-    void editorMoveCursor(int key);
+    std::shared_ptr<Model> model;
+    std::shared_ptr<TerminalView> view;
+
+    int readKey();
+    void moveCursor(int key);
+    void scroll();
     char *editorPrompt(char *prompt, void (*callback)(char *, int));
     void editorSave();
     void editorFind();
     void editorFindCallback(char *query, int key);
     char *editorRowsToString(int *buflen);
-
-
-private:
-    std::shared_ptr<Model> model;
-    std::shared_ptr<TerminalView> view;
 };
 
 #endif // CONTROLLER_H
