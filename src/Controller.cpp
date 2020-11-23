@@ -1,14 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <Controller.h>
 #include <errno.h>
 #include <ctype.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
-#include <memory.h>
 
 Controller::Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view) : model(model), view(view)
 {

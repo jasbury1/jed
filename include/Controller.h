@@ -3,7 +3,6 @@
 
 #include <TerminalView.h>
 #include <Model.h>
-#include <memory>
 
 #define KILO_QUIT_TIMES 3
 

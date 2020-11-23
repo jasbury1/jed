@@ -1,10 +1,5 @@
 #include <TerminalView.h>
-#include <stdio.h>
-#include <string.h>
 #include <Model.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <ctype.h>
 #include <unistd.h>
 #include <string>
 
