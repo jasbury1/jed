@@ -11,18 +11,13 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <termios.h>
-#include <time.h>
-#include <unistd.h>
 #include <Model.h>
 #include <Controller.h>
 #include <TerminalView.h>
-#include <iostream>
 
 /*** terminal ***/
 
+/*
 void die(const char *s)
 {
     write(STDOUT_FILENO, "\x1b[2J", 4);
@@ -31,6 +26,7 @@ void die(const char *s)
     perror(s);
     exit(1);
 }
+*/
 
 
 int main(int argc, char *argv[])

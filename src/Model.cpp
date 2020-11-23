@@ -3,10 +3,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
-#include <time.h>
-#include <termios.h>
 #include <memory.h>
-#include <string.h>
 #include <ctype.h>
 
 
@@ -27,20 +24,9 @@ struct Model::editorSyntax Model::HLDB[] = {
 
 #define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
 
-Model::Model()
+Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), numrows(0), row(NULL), dirty(0), filename(NULL), statusmsg_time(0), syntax(NULL)
 {
-    cx = 0;
-    cy = 0;
-    rx = 0;
-    rowoff = 0;
-    coloff = 0;
-    numrows = 0;
-    row = NULL;
-    dirty = 0;
-    filename = NULL;
     statusmsg[0] = '\0';
-    statusmsg_time = 0;
-    syntax = NULL;
 
     if (getWindowSize(&screenrows, &screencols) == -1){
         /* TODO */
