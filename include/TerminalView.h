@@ -7,12 +7,13 @@
 class TerminalView
 {
 public:
-    TerminalView(std::shared_ptr<Model> model);
+    TerminalView(std::shared_ptr<const Model> model);
     ~TerminalView();
     void drawScreen();
 
 private:
-    std::shared_ptr<Model> model;
+    std::shared_ptr<const Model> model;
+    struct termios origTermios;
 
     void editorDrawRows(std::string& displayStr);
     void editorDrawStatusBar(std::string& displayStr);

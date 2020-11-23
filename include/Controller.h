@@ -12,7 +12,7 @@ public:
     Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view);
     ~Controller();
 
-    void processKeypress();
+    void processInput();
 
 private:
     enum editorKey

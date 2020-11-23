@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string>
 
-TerminalView::TerminalView(std::shared_ptr<Model> model) : model(model){
+TerminalView::TerminalView(std::shared_ptr<const Model> model) : model(model){
     enableRawMode();
 }
 
@@ -181,18 +181,18 @@ int TerminalView::editorSyntaxToColor(int hl)
 
 void TerminalView::disableRawMode()
 {
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &model->orig_termios) == -1){
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &origTermios) == -1){
         // TODO: DIE
     }
 }
 
 void TerminalView::enableRawMode()
 {
-    if (tcgetattr(STDIN_FILENO, &model->orig_termios) == -1){
+    if (tcgetattr(STDIN_FILENO, &origTermios) == -1){
         // TODO DIE
     }
 
-    struct termios raw = model->orig_termios;
+    struct termios raw = origTermios;
     raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
     raw.c_oflag &= ~(OPOST);
     raw.c_cflag |= (CS8);

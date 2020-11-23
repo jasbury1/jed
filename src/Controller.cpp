@@ -13,7 +13,7 @@ Controller::~Controller()
 {
 }
 
-void Controller::processKeypress()
+void Controller::processInput()
 {
     static int quit_times = KILO_QUIT_TIMES;
 
