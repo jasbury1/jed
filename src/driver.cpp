@@ -40,12 +40,12 @@ int main(int argc, char *argv[])
         model->editorOpen(argv[1]);
     }
 
-    view->editorSetStatusMessage(
+    model->editorSetStatusMessage(
         "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
     while (1)
     {
-        view->editorRefreshScreen();
+        view->drawScreen();
         controller->editorProcessKeypress();
     }
 

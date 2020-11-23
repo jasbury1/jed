@@ -33,7 +33,7 @@ void Controller::editorProcessKeypress()
     case CTRL_KEY('q'):
         if (model->dirty && quit_times > 0)
         {
-            view->editorSetStatusMessage("WARNING!!! File has unsaved changes. "
+            model->editorSetStatusMessage("WARNING!!! File has unsaved changes. "
                                          "Press Ctrl-Q %d more times to quit.",
                                          quit_times);
             quit_times--;
@@ -254,8 +254,8 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
 
     while (1)
     {
-        view->editorSetStatusMessage(prompt, buf);
-        view->editorRefreshScreen();
+        model->editorSetStatusMessage(prompt, buf);
+        view->drawScreen();
 
         int c = editorReadKey();
         if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE)
@@ -265,7 +265,7 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
         }
         else if (c == '\x1b')
         {
-            view->editorSetStatusMessage("");
+            model->editorSetStatusMessage("");
             if (callback)
                 callback(buf, c);
             free(buf);
@@ -275,7 +275,7 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
         {
             if (buflen != 0)
             {
-                view->editorSetStatusMessage("");
+                model->editorSetStatusMessage("");
                 if (callback)
                     callback(buf, c);
                 return buf;
@@ -304,7 +304,7 @@ void Controller::editorSave()
         model->filename = editorPrompt("Save as: %s (ESC to cancel)", NULL);
         if (model->filename == NULL)
         {
-            view->editorSetStatusMessage("Save aborted");
+            model->editorSetStatusMessage("Save aborted");
             return;
         }
         model->editorSelectSyntaxHighlight();
@@ -323,7 +323,7 @@ void Controller::editorSave()
                 close(fd);
                 free(buf);
                 model->dirty = 0;
-                view->editorSetStatusMessage("%d bytes written to disk", len);
+                model->editorSetStatusMessage("%d bytes written to disk", len);
                 return;
             }
         }
@@ -331,7 +331,7 @@ void Controller::editorSave()
     }
 
     free(buf);
-    view->editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
+    model->editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
 
 char *Controller::editorRowsToString(int *buflen)

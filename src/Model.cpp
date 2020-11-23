@@ -5,6 +5,7 @@
 #include <sys/ioctl.h>
 #include <memory.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 
 char *Model::C_HL_extensions[] = {".c", ".h", ".cpp", NULL};
@@ -83,6 +84,14 @@ int Model::getCursorPosition(int *rows, int *cols)
     return 0;
 }
 
+void Model::editorSetStatusMessage(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(statusmsg, sizeof(statusmsg), fmt, ap);
+    va_end(ap);
+    statusmsg_time = time(NULL);
+}
 
 int Model::editorRowCxToRx(Model::erow *row, int cx)
 {

@@ -4,38 +4,23 @@
 #include <Model.h>
 #include <memory>
 
-#define ABUF_INIT \
-    {             \
-        NULL, 0   \
-    }
-
 class TerminalView
 {
-
 public:
-    struct abuf
-    {
-        char *b;
-        int len;
-    };
-
     TerminalView(std::shared_ptr<Model> model);
     ~TerminalView();
-    void editorScroll();
-    void editorDrawRows(struct abuf *ab);
-    void editorDrawStatusBar(struct abuf *ab);
-    void editorDrawMessageBar(struct abuf *ab);
-    void editorRefreshScreen();
-    void editorSetStatusMessage(const char *fmt, ...);
-    int editorSyntaxToColor(int hl);
-    void disableRawMode();
-    void enableRawMode();
-
-    void abAppend(struct abuf *ab, const char *s, int len);
-    void abFree(struct abuf *ab);
+    void drawScreen();
 
 private:
     std::shared_ptr<Model> model;
+
+    void editorScroll();
+    void editorDrawRows(std::string& displayStr);
+    void editorDrawStatusBar(std::string& displayStr);
+    void editorDrawMessageBar(std::string& displayStr);
+    int editorSyntaxToColor(int hl);
+    void disableRawMode();
+    void enableRawMode();
 };
 
 #endif //TERMINALVIEW_H

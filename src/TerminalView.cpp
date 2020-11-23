@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <string>
 
 TerminalView::TerminalView(std::shared_ptr<Model> model) : model(model){
     enableRawMode();
@@ -42,7 +43,7 @@ void TerminalView::editorScroll()
     }
 }
 
-void TerminalView::editorDrawRows(struct abuf *ab)
+void TerminalView::editorDrawRows(std::string& displayStr)
 {
     int y;
     for (y = 0; y < model->screenrows; y++)
@@ -60,16 +61,16 @@ void TerminalView::editorDrawRows(struct abuf *ab)
                 int padding = (model->screencols - welcomelen) / 2;
                 if (padding)
                 {
-                    abAppend(ab, "~", 1);
+                    displayStr.append("~", 1);
                     padding--;
                 }
                 while (padding--)
-                    abAppend(ab, " ", 1);
-                abAppend(ab, welcome, welcomelen);
+                    displayStr.append(" ", 1);
+                displayStr.append(welcome, welcomelen);
             }
             else
             {
-                abAppend(ab, "~", 1);
+                displayStr.append("~", 1);
             }
         }
         else
@@ -88,24 +89,24 @@ void TerminalView::editorDrawRows(struct abuf *ab)
                 if (iscntrl(c[j]))
                 {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
-                    abAppend(ab, "\x1b[7m", 4);
-                    abAppend(ab, &sym, 1);
-                    abAppend(ab, "\x1b[m", 3);
+                    displayStr.append("\x1b[7m", 4);
+                    displayStr.append(&sym, 1);
+                    displayStr.append("\x1b[m", 3);
                     if (current_color != -1)
                     {
                         char buf[16];
                         int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", current_color);
-                        abAppend(ab, buf, clen);
+                        displayStr.append(buf, clen);
                     }
                 }
                 else if (hl[j] == Model::HL_NORMAL)
                 {
                     if (current_color != -1)
                     {
-                        abAppend(ab, "\x1b[39m", 5);
+                        displayStr.append("\x1b[39m", 5);
                         current_color = -1;
                     }
-                    abAppend(ab, &c[j], 1);
+                    displayStr.append(&c[j], 1);
                 }
                 else
                 {
@@ -115,22 +116,22 @@ void TerminalView::editorDrawRows(struct abuf *ab)
                         current_color = color;
                         char buf[16];
                         int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
-                        abAppend(ab, buf, clen);
+                        displayStr.append(buf, clen);
                     }
-                    abAppend(ab, &c[j], 1);
+                    displayStr.append(&c[j], 1);
                 }
             }
-            abAppend(ab, "\x1b[39m", 5);
+            displayStr.append("\x1b[39m", 5);
         }
 
-        abAppend(ab, "\x1b[K", 3);
-        abAppend(ab, "\r\n", 2);
+        displayStr.append("\x1b[K", 3);
+        displayStr.append("\r\n", 2);
     }
 }
 
-void TerminalView::editorDrawStatusBar(struct abuf *ab)
+void TerminalView::editorDrawStatusBar(std::string& displayStr)
 {
-    abAppend(ab, "\x1b[7m", 4);
+    displayStr.append("\x1b[7m", 4);
     char status[80], rstatus[80];
     int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
                        model->filename ? model->filename : "[No Name]", model->numrows,
@@ -139,82 +140,55 @@ void TerminalView::editorDrawStatusBar(struct abuf *ab)
                         model->syntax ? model->syntax->filetype : "no ft", model->cy + 1, model->numrows);
     if (len > model->screencols)
         len = model->screencols;
-    abAppend(ab, status, len);
+    displayStr.append(status, len);
     while (len < model->screencols)
     {
         if (model->screencols - len == rlen)
         {
-            abAppend(ab, rstatus, rlen);
+            displayStr.append(rstatus, rlen);
             break;
         }
         else
         {
-            abAppend(ab, " ", 1);
+            displayStr.append(" ", 1);
             len++;
         }
     }
-    abAppend(ab, "\x1b[m", 3);
-    abAppend(ab, "\r\n", 2);
+    displayStr.append("\x1b[m", 3);
+    displayStr.append("\r\n", 2);
 }
 
-void TerminalView::editorDrawMessageBar(struct abuf *ab)
+void TerminalView::editorDrawMessageBar(std::string& displayStr)
 {
-    abAppend(ab, "\x1b[K", 3);
+    displayStr.append("\x1b[K", 3);
     int msglen = strlen(model->statusmsg);
     if (msglen > model->screencols)
         msglen = model->screencols;
     if (msglen && time(NULL) - model->statusmsg_time < 5)
-        abAppend(ab, model->statusmsg, msglen);
+        displayStr.append(model->statusmsg, msglen);
 }
 
-void TerminalView::editorRefreshScreen()
+void TerminalView::drawScreen()
 {
     editorScroll();
 
-    struct abuf ab = ABUF_INIT;
+    std::string displayStr = "";
 
-    abAppend(&ab, "\x1b[?25l", 6);
-    abAppend(&ab, "\x1b[H", 3);
+    displayStr.append("\x1b[?25l", 6);
+    displayStr.append("\x1b[H", 3);
 
-    editorDrawRows(&ab);
-    editorDrawStatusBar(&ab);
-    editorDrawMessageBar(&ab);
+    editorDrawRows(displayStr);
+    editorDrawStatusBar(displayStr);
+    editorDrawMessageBar(displayStr);
 
     char buf[32];
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (model->cy - model->rowoff) + 1,
              (model->rx - model->coloff) + 1);
-    abAppend(&ab, buf, strlen(buf));
+    displayStr.append(buf, strlen(buf));
 
-    abAppend(&ab, "\x1b[?25h", 6);
+    displayStr.append("\x1b[?25h", 6);
 
-    write(STDOUT_FILENO, ab.b, ab.len);
-    abFree(&ab);
-}
-
-void TerminalView::editorSetStatusMessage(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(model->statusmsg, sizeof(model->statusmsg), fmt, ap);
-    va_end(ap);
-    model->statusmsg_time = time(NULL);
-}
-
-
-void TerminalView::abAppend(struct abuf *ab, const char *s, int len)
-{
-    char *new_b = (char *)realloc(ab->b, ab->len + len);
-
-    if (new_b == NULL)
-        return;
-    memcpy(&new_b[ab->len], s, len);
-    ab->b = new_b;
-    ab->len += len;
-}
-
-void TerminalView::abFree(struct abuf *ab)
-{
-    free(ab->b);
+    write(STDOUT_FILENO, displayStr.c_str(), displayStr.length());
 }
 
 int TerminalView::editorSyntaxToColor(int hl)
@@ -238,7 +212,6 @@ int TerminalView::editorSyntaxToColor(int hl)
         return 37;
     }
 }
-
 
 void TerminalView::disableRawMode()
 {
