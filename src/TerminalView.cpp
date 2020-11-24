@@ -11,6 +11,27 @@ TerminalView::~TerminalView(){
      disableRawMode();
 }
 
+void TerminalView::drawView()
+{
+    std::string displayStr = "";
+
+    displayStr.append("\x1b[?25l", 6);
+    displayStr.append("\x1b[H", 3);
+
+    editorDrawRows(displayStr);
+    editorDrawStatusBar(displayStr);
+    editorDrawMessageBar(displayStr);
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (model->cy - model->rowoff) + 1,
+             (model->rx - model->coloff) + 1);
+    displayStr.append(buf, strlen(buf));
+
+    displayStr.append("\x1b[?25h", 6);
+
+    write(STDOUT_FILENO, displayStr.c_str(), displayStr.length());
+}
+
 void TerminalView::editorDrawRows(std::string& displayStr)
 {
     int y;
@@ -134,27 +155,6 @@ void TerminalView::editorDrawMessageBar(std::string& displayStr)
         msglen = model->screencols;
     if (msglen && time(NULL) - model->statusmsg_time < 5)
         displayStr.append(model->statusmsg, msglen);
-}
-
-void TerminalView::drawScreen()
-{
-    std::string displayStr = "";
-
-    displayStr.append("\x1b[?25l", 6);
-    displayStr.append("\x1b[H", 3);
-
-    editorDrawRows(displayStr);
-    editorDrawStatusBar(displayStr);
-    editorDrawMessageBar(displayStr);
-
-    char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (model->cy - model->rowoff) + 1,
-             (model->rx - model->coloff) + 1);
-    displayStr.append(buf, strlen(buf));
-
-    displayStr.append("\x1b[?25h", 6);
-
-    write(STDOUT_FILENO, displayStr.c_str(), displayStr.length());
 }
 
 int TerminalView::editorSyntaxToColor(int hl)

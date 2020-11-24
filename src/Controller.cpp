@@ -277,7 +277,7 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
     while (1)
     {
         model->editorSetStatusMessage(prompt, buf);
-        view->drawScreen();
+        view->draw();
 
         int c = readKey();
         if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE)
