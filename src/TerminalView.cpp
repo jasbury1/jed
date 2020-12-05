@@ -123,7 +123,7 @@ void TerminalView::editorDrawStatusBar(std::string& displayStr)
     displayStr.append("\x1b[7m", 4);
     char status[80], rstatus[80];
     int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-                       model->filename ? model->filename : "[No Name]", model->numrows,
+                       model->filename.empty() ? model->filename.c_str() : "[No Name]", model->numrows,
                        model->dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
                         model->syntax ? model->syntax->filetype : "no ft", model->cy + 1, model->numrows);

@@ -6,7 +6,9 @@
 #include <memory.h>
 #include <ctype.h>
 #include <stdarg.h>
-
+#include <fstream>
+#include <string>
+#include <iostream>
 
 char *Model::C_HL_extensions[] = {".c", ".h", ".cpp", NULL};
 char *Model::C_HL_keywords[] = {
@@ -25,11 +27,12 @@ struct Model::editorSyntax Model::HLDB[] = {
 
 #define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
 
-Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), numrows(0), row(NULL), dirty(0), filename(NULL), statusmsg_time(0), syntax(NULL)
+Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), numrows(0), row(NULL), dirty(0), statusmsg_time(0), syntax(NULL)
 {
     statusmsg[0] = '\0';
 
-    if (getWindowSize(&screenrows, &screencols) == -1){
+    if (getWindowSize(&screenrows, &screencols) == -1)
+    {
         /* TODO */
     }
     screenrows -= 2;
@@ -57,7 +60,6 @@ int Model::getWindowSize(int *rows, int *cols)
     }
 }
 
-
 int Model::getCursorPosition(int *rows, int *cols)
 {
     char buf[32];
@@ -84,7 +86,7 @@ int Model::getCursorPosition(int *rows, int *cols)
     return 0;
 }
 
-void Model::editorSetStatusMessage(const char *fmt, ...)
+void Model::setStatusMessage(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -93,26 +95,26 @@ void Model::editorSetStatusMessage(const char *fmt, ...)
     statusmsg_time = time(NULL);
 }
 
-int Model::editorRowCxToRx(Model::erow *row, int cx)
+int Model::rowCxToRx(Model::erow *row, int cx)
 {
     int rx = 0;
     int j;
     for (j = 0; j < cx; j++)
     {
-        if (row->chars[j] == '\t')
+        if (row->contents[j] == '\t')
             rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
         rx++;
     }
     return rx;
 }
 
-int Model::editorRowRxToCx(Model::erow *row, int rx)
+int Model::rowRxToCx(Model::erow *row, int rx)
 {
     int cur_rx = 0;
     int cx;
     for (cx = 0; cx < row->size; cx++)
     {
-        if (row->chars[cx] == '\t')
+        if (row->contents[cx] == '\t')
             cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);
         cur_rx++;
 
@@ -122,12 +124,12 @@ int Model::editorRowRxToCx(Model::erow *row, int rx)
     return cx;
 }
 
-void Model::editorUpdateRow(Model::erow *newRow)
+void Model::updateRowRender(Model::erow *newRow)
 {
     int tabs = 0;
     int j;
     for (j = 0; j < newRow->size; j++)
-        if (newRow->chars[j] == '\t')
+        if (newRow->contents[j] == '\t')
             tabs++;
 
     free(newRow->render);
@@ -136,7 +138,7 @@ void Model::editorUpdateRow(Model::erow *newRow)
     int idx = 0;
     for (j = 0; j < newRow->size; j++)
     {
-        if (newRow->chars[j] == '\t')
+        if (newRow->contents[j] == '\t')
         {
             newRow->render[idx++] = ' ';
             while (idx % KILO_TAB_STOP != 0)
@@ -144,97 +146,92 @@ void Model::editorUpdateRow(Model::erow *newRow)
         }
         else
         {
-            newRow->render[idx++] = newRow->chars[j];
+            newRow->render[idx++] = newRow->contents[j];
         }
     }
     newRow->render[idx] = '\0';
     newRow->rsize = idx;
 
-    editorUpdateSyntax(newRow);
+    updateSyntax(newRow);
 }
 
-void Model::editorInsertRow(int at, char *s, size_t len)
+//TODO: Add default parameters here for start and len?
+void Model::insertRow(int at, const std::string &str, int startIndex, std::size_t len)
 {
     if (at < 0 || at > numrows)
         return;
 
+    //TODO: Bounds check for len and startIndex
+
     row = (Model::erow *)realloc(row, sizeof(Model::erow) * (numrows + 1));
+    // Shift all rows forward
     memmove(&row[at + 1], &row[at], sizeof(Model::erow) * (numrows - at));
+    // Increase the internal index number for each row
     for (int j = at + 1; j <= numrows; j++)
         row[j].idx++;
 
     row[at].idx = at;
 
     row[at].size = len;
-    row[at].chars = (char *)malloc(len + 1);
-    memcpy(row[at].chars, s, len);
-    row[at].chars[len] = '\0';
+    row[at].contents = str.substr(startIndex, len);
 
     row[at].rsize = 0;
     row[at].render = NULL;
     row[at].hl = NULL;
     row[at].hl_open_comment = 0;
-    editorUpdateRow(&row[at]);
+    updateRowRender(&row[at]);
 
     numrows++;
     dirty++;
 }
 
-void Model::editorFreeRow(Model::erow *row)
+//TODO: This needs to be removed entirely. Make it a destructor
+void Model::freeRow(Model::erow *curRow)
 {
-    free(row->render);
-    free(row->chars);
-    free(row->hl);
+    free(curRow->render);
+    free(curRow->hl);
 }
 
-void Model::editorDelRow(int at)
-{
+void Model::deleteRow(int at) {
     if (at < 0 || at >= numrows)
         return;
-    editorFreeRow(&row[at]);
+    freeRow(&row[at]);
     memmove(&row[at], &row[at + 1], sizeof(Model::erow) * (numrows - at - 1));
     for (int j = at; j < numrows - 1; j++)
         row[j].idx--;
     numrows--;
-    dirty++;
+    dirty++; 
 }
 
-void Model::editorRowInsertChar(Model::erow *row, int at, int c)
+void Model::insertChar(int c)
 {
-    if (at < 0 || at > row->size)
-        at = row->size;
-    row->chars = (char *)realloc(row->chars, row->size + 2);
-    memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
-    row->size++;
-    row->chars[at] = c;
-    editorUpdateRow(row);
-    dirty++;
+    if (cy == numrows)
+    {
+        insertRow(numrows, "", 0, 0);
+    }
+    rowInsertChar(c);
+    cx++;
 }
 
-void Model::editorRowAppendString(Model::erow *row, char *s, size_t len)
-{
-    row->chars = (char *)realloc(row->chars, row->size + len + 1);
-    memcpy(&row->chars[row->size], s, len);
-    row->size += len;
-    row->chars[row->size] = '\0';
-    editorUpdateRow(row);
-    dirty++;
+void Model::rowInsertChar(int c) {
+    Model::erow *curRow = &row[cy];
+    int at = cx;
+
+    // TODO: Is this check even necessary??
+    if (at < 0 || at > curRow->size)
+        at = curRow->size;
+
+    curRow->contents.insert(at, 1, c);
+    curRow->size++;
+
+    updateRowRender(curRow);
+    dirty++; 
 }
 
-void Model::editorRowDelChar(Model::erow *row, int at)
+void Model::updateSyntax(Model::erow *curRow)
 {
-    if (at < 0 || at >= row->size)
-        return;
-    memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
-    row->size--;
-    editorUpdateRow(row);
-    dirty++;
-}
-
-void Model::editorUpdateSyntax(Model::erow *row)
-{
-    row->hl = (unsigned char *)realloc(row->hl, row->rsize);
-    memset(row->hl, HL_NORMAL, row->rsize);
+    curRow->hl = (unsigned char *)realloc(curRow->hl, curRow->rsize);
+    memset(curRow->hl, HL_NORMAL, curRow->rsize);
 
     if (syntax == NULL)
         return;
@@ -251,19 +248,19 @@ void Model::editorUpdateSyntax(Model::erow *row)
 
     int prev_sep = 1;
     int in_string = 0;
-    int in_comment = (row->idx > 0 && row[row->idx - 1].hl_open_comment);
+    int in_comment = (curRow->idx > 0 && row[curRow->idx - 1].hl_open_comment);
 
     int i = 0;
-    while (i < row->rsize)
+    while (i < curRow->rsize)
     {
-        char c = row->render[i];
-        unsigned char prev_hl = (i > 0) ? row->hl[i - 1] : HL_NORMAL;
+        char c = curRow->render[i];
+        unsigned char prev_hl = (i > 0) ? curRow->hl[i - 1] : HL_NORMAL;
 
         if (scs_len && !in_string && !in_comment)
         {
-            if (!strncmp(&row->render[i], scs, scs_len))
+            if (!strncmp(&curRow->render[i], scs, scs_len))
             {
-                memset(&row->hl[i], HL_COMMENT, row->rsize - i);
+                memset(&curRow->hl[i], HL_COMMENT, curRow->rsize - i);
                 break;
             }
         }
@@ -272,10 +269,10 @@ void Model::editorUpdateSyntax(Model::erow *row)
         {
             if (in_comment)
             {
-                row->hl[i] = HL_MLCOMMENT;
-                if (!strncmp(&row->render[i], mce, mce_len))
+                curRow->hl[i] = HL_MLCOMMENT;
+                if (!strncmp(&curRow->render[i], mce, mce_len))
                 {
-                    memset(&row->hl[i], HL_MLCOMMENT, mce_len);
+                    memset(&curRow->hl[i], HL_MLCOMMENT, mce_len);
                     i += mce_len;
                     in_comment = 0;
                     prev_sep = 1;
@@ -287,9 +284,9 @@ void Model::editorUpdateSyntax(Model::erow *row)
                     continue;
                 }
             }
-            else if (!strncmp(&row->render[i], mcs, mcs_len))
+            else if (!strncmp(&curRow->render[i], mcs, mcs_len))
             {
-                memset(&row->hl[i], HL_MLCOMMENT, mcs_len);
+                memset(&curRow->hl[i], HL_MLCOMMENT, mcs_len);
                 i += mcs_len;
                 in_comment = 1;
                 continue;
@@ -300,10 +297,10 @@ void Model::editorUpdateSyntax(Model::erow *row)
         {
             if (in_string)
             {
-                row->hl[i] = HL_STRING;
-                if (c == '\\' && i + 1 < row->rsize)
+                curRow->hl[i] = HL_STRING;
+                if (c == '\\' && i + 1 < curRow->rsize)
                 {
-                    row->hl[i + 1] = HL_STRING;
+                    curRow->hl[i + 1] = HL_STRING;
                     i += 2;
                     continue;
                 }
@@ -318,7 +315,7 @@ void Model::editorUpdateSyntax(Model::erow *row)
                 if (c == '"' || c == '\'')
                 {
                     in_string = c;
-                    row->hl[i] = HL_STRING;
+                    curRow->hl[i] = HL_STRING;
                     i++;
                     continue;
                 }
@@ -330,7 +327,7 @@ void Model::editorUpdateSyntax(Model::erow *row)
             if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) ||
                 (c == '.' && prev_hl == HL_NUMBER))
             {
-                row->hl[i] = HL_NUMBER;
+                curRow->hl[i] = HL_NUMBER;
                 i++;
                 prev_sep = 0;
                 continue;
@@ -347,10 +344,10 @@ void Model::editorUpdateSyntax(Model::erow *row)
                 if (kw2)
                     klen--;
 
-                if (!strncmp(&row->render[i], keywords[j], klen) &&
-                    is_separator(row->render[i + klen]))
+                if (!strncmp(&curRow->render[i], keywords[j], klen) &&
+                    isSeparator(curRow->render[i + klen]))
                 {
-                    memset(&row->hl[i], kw2 ? HL_KEYWORD2 : HL_KEYWORD1, klen);
+                    memset(&curRow->hl[i], kw2 ? HL_KEYWORD2 : HL_KEYWORD1, klen);
                     i += klen;
                     break;
                 }
@@ -362,51 +359,42 @@ void Model::editorUpdateSyntax(Model::erow *row)
             }
         }
 
-        prev_sep = is_separator(c);
+        prev_sep = isSeparator(c);
         i++;
     }
 
-    int changed = (row->hl_open_comment != in_comment);
-    row->hl_open_comment = in_comment;
-    if (changed && row->idx + 1 < numrows)
-        editorUpdateSyntax(&row[row->idx + 1]);
+    int changed = (curRow->hl_open_comment != in_comment);
+    curRow->hl_open_comment = in_comment;
+    if (changed && curRow->idx + 1 < numrows)
+        updateSyntax(&row[curRow->idx + 1]);
 }
 
-int Model::is_separator(int c)
+
+
+int Model::isSeparator(int c)
 {
     return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
 }
 
-void Model::editorInsertChar(int c)
-{
-    if (cy == numrows)
-    {
-        editorInsertRow(numrows, "", 0);
-    }
-    editorRowInsertChar(&row[cy], cx, c);
-    cx++;
-}
-
-void Model::editorInsertNewline()
-{
+void Model::insertNewline() {
     if (cx == 0)
     {
-        editorInsertRow(cy, "", 0);
+        insertRow(cy, "", 0, 0);
     }
     else
     {
         Model::erow *curRow = &row[cy];
-        editorInsertRow(cy + 1, &curRow->chars[cx], curRow->size - cx);
+        insertRow(cy + 1, curRow->contents, cx, curRow->size - cx);
         curRow = &row[cy];
         curRow->size = cx;
-        curRow->chars[curRow->size] = '\0';
-        editorUpdateRow(curRow);
+        curRow->contents.resize(curRow->size);
+        updateRowRender(curRow);
     }
     cy++;
-    cx = 0;
+    cx = 0;        
 }
 
-void Model::editorDelChar()
+void Model::deleteChar()
 {
     if (cy == numrows)
         return;
@@ -416,52 +404,67 @@ void Model::editorDelChar()
     Model::erow *curRow = &row[cy];
     if (cx > 0)
     {
-        editorRowDelChar(curRow, cx - 1);
+        if(cx > curRow->size) {
+            return;
+        }
+        curRow->contents.erase(cx - 1, 1);
+        curRow->size--;
+        updateRowRender(curRow);
+        dirty++;
         cx--;
     }
     else
     {
         cx = row[cy - 1].size;
-        editorRowAppendString(&row[cy - 1], curRow->chars, curRow->size);
-        editorDelRow(cy);
+        (&row[cy - 1])->contents += curRow->contents;
+        (&row[cy - 1])->size += curRow->size;
+        updateRowRender(&row[cy - 1]);
+        dirty++;
+        deleteRow(cy);
         cy--;
-    }
+    } 
 }
 
-void Model::editorOpen(char *open_file)
+void Model::openFile(const std::string &inputFile)
 {
-    free(filename);
-    filename = strdup(open_file);
+    filename = inputFile;
 
-    editorSelectSyntaxHighlight();
+    selectSyntaxHighlight();
 
-    FILE *fp = fopen(open_file, "r");
-    if (!fp){
-        /* TODO DIE */
-    }
-
-    char *line = NULL;
-    size_t linecap = 0;
-    ssize_t linelen;
-    while ((linelen = getline(&line, &linecap, fp)) != -1)
+    std::ifstream infile(inputFile);
+    if (infile.is_open())
     {
-        while (linelen > 0 && (line[linelen - 1] == '\n' ||
-                               line[linelen - 1] == '\r'))
-            linelen--;
-        editorInsertRow(numrows, line, linelen);
+        std::string line;
+        while (getline(infile, line))
+        {
+            auto linelen = line.length();
+            while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
+            {
+                linelen--;
+            }
+            insertRow(numrows, line, 0, linelen);
+        }
+
+        infile.close();
+        dirty = 0;
     }
-    free(line);
-    fclose(fp);
-    dirty = 0;
+    else
+    {
+        //TODO: We could not open the file
+    }
 }
 
-void Model::editorSelectSyntaxHighlight()
+void Model::selectSyntaxHighlight()
 {
     syntax = NULL;
-    if (filename == NULL)
+    if (filename.empty())
         return;
+    auto pos = filename.rfind(".");
+    if(pos == std::string::npos) {
+        return;
+    }
 
-    char *ext = strrchr(filename, '.');
+    std::string ext = filename.substr(pos);
 
     for (unsigned int j = 0; j < HLDB_ENTRIES; j++)
     {
@@ -470,15 +473,15 @@ void Model::editorSelectSyntaxHighlight()
         while (s->filematch[i])
         {
             int is_ext = (s->filematch[i][0] == '.');
-            if ((is_ext && ext && !strcmp(ext, s->filematch[i])) ||
-                (!is_ext && strstr(filename, s->filematch[i])))
+            if ((is_ext && ext.c_str() && !strcmp(ext.c_str(), s->filematch[i])) ||
+                (!is_ext && strstr(filename.c_str(), s->filematch[i])))
             {
                 syntax = s;
 
                 int filerow;
                 for (filerow = 0; filerow < numrows; filerow++)
                 {
-                    editorUpdateSyntax(&row[filerow]);
+                    updateSyntax(&row[filerow]);
                 }
 
                 return;
@@ -487,3 +490,5 @@ void Model::editorSelectSyntaxHighlight()
         }
     }
 }
+
+

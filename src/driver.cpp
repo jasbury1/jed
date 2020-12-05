@@ -14,6 +14,7 @@
 #include <Model.h>
 #include <Controller.h>
 #include <TerminalView.h>
+#include <string>
 
 /*** terminal ***/
 
@@ -37,10 +38,11 @@ int main(int argc, char *argv[])
 
     if (argc >= 2)
     {
-        model->editorOpen(argv[1]);
+        std::string filename = argv[1];
+        model->openFile(filename);
     }
 
-    model->editorSetStatusMessage(
+    model->setStatusMessage(
         "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
     while (1)

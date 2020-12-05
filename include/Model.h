@@ -3,6 +3,7 @@
 
 #include <time.h>
 #include <termios.h>
+#include <string>
 
 #define CTRL_KEY(k) ((k)&0x1f)
 
@@ -32,7 +33,8 @@ public:
         int idx;
         int size;
         int rsize;
-        char *chars;
+        std::string contents;
+        //char *chars;
         char *render;
         unsigned char *hl;
         int hl_open_comment;
@@ -54,6 +56,7 @@ public:
     static struct editorSyntax HLDB[1];
 
     int cx, cy;
+    // Index into render field. Needed for positioning based on
     int rx;
     int rowoff;
     int coloff;
@@ -62,35 +65,34 @@ public:
     int numrows;
     erow *row;
     int dirty;
-    char *filename;
+    //char *filename;
+    std::string filename;
     char statusmsg[80];
     time_t statusmsg_time;
     struct editorSyntax *syntax;
 
     Model();
     ~Model();
-
-    int getWindowSize(int *rows, int *cols);
-    int getCursorPosition(int *rows, int *cols);
-    int editorRowCxToRx(erow *row, int cx);
-    int editorRowRxToCx(erow *row, int rx);
-    void editorSetStatusMessage(const char *fmt, ...);
-    void editorUpdateRow(erow *row);
-    void editorInsertRow(int at, char *s, size_t len);
-    void editorFreeRow(erow *row);
-    void editorDelRow(int at);
-    void editorRowInsertChar(erow *row, int at, int c);
-    void editorRowAppendString(erow *row, char *s, size_t len);
-    void editorRowDelChar(erow *row, int at);
-    void editorUpdateSyntax(erow *row);
-    int is_separator(int c);
-    void editorInsertNewline();
-    void editorInsertChar(int c);
-    void editorDelChar();
-    void editorOpen(char *open_file);
-    void editorSelectSyntaxHighlight();
+    void openFile(const std::string& inputFile);
+    void setStatusMessage(const char *fmt, ...);
+    void selectSyntaxHighlight();
+    int rowCxToRx(Model::erow *row, int cx);
+    int rowRxToCx(Model::erow *row, int rx);
+    void insertChar(int c);
+    void deleteChar();
+    void insertNewline();
 
 private:
+    void insertRow(int at, const std::string &str, int startIndex, std::size_t len);
+    void updateRowRender(erow *newRow);
+    void rowInsertChar(int c);
+    void deleteRow(int at);
+    void freeRow(erow *curRow);
+    int isSeparator(int c);
+    void updateSyntax(erow *curRow);
+    int getWindowSize(int *rows, int *cols);
+    int getCursorPosition(int *rows, int *cols);
+
 };
 
 #endif //MODEL_H

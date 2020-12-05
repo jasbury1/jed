@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <iostream>
+#include <fstream>
 
 Controller::Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view) : model(model), view(view)
 {
@@ -22,13 +24,13 @@ void Controller::processInput()
     switch (c)
     {
     case '\r':
-        model->editorInsertNewline();
+        model->insertNewline();
         break;
 
     case CTRL_KEY('q'):
         if (model->dirty && quit_times > 0)
         {
-            model->editorSetStatusMessage("WARNING!!! File has unsaved changes. "
+            model->setStatusMessage("WARNING!!! File has unsaved changes. "
                                          "Press Ctrl-Q %d more times to quit.",
                                          quit_times);
             quit_times--;
@@ -40,7 +42,7 @@ void Controller::processInput()
         break;
 
     case CTRL_KEY('s'):
-        editorSave();
+        saveFile();
         break;
 
     case HOME_KEY:
@@ -61,7 +63,7 @@ void Controller::processInput()
     case DEL_KEY:
         if (c == DEL_KEY)
             moveCursor(ARROW_RIGHT);
-        model->editorDelChar();
+        model->deleteChar();
         break;
 
     case PAGE_UP:
@@ -96,7 +98,7 @@ void Controller::processInput()
         break;
 
     default:
-        model->editorInsertChar(c);
+        model->insertChar(c);
         break;
     }
 
@@ -195,7 +197,7 @@ void Controller::scroll()
     model->rx = 0;
     if (model->cy < model->numrows)
     {
-        model->rx = model->editorRowCxToRx(&model->row[model->cy], model->cx);
+        model->rx = model->rowCxToRx(&model->row[model->cy], model->cx);
     }
 
     if (model->cy < model->rowoff)
@@ -276,7 +278,7 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
 
     while (1)
     {
-        model->editorSetStatusMessage(prompt, buf);
+        model->setStatusMessage(prompt, buf);
         view->draw();
 
         int c = readKey();
@@ -287,7 +289,7 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
         }
         else if (c == '\x1b')
         {
-            model->editorSetStatusMessage("");
+            model->setStatusMessage("");
             if (callback)
                 callback(buf, c);
             free(buf);
@@ -297,7 +299,7 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
         {
             if (buflen != 0)
             {
-                model->editorSetStatusMessage("");
+                model->setStatusMessage("");
                 if (callback)
                     callback(buf, c);
                 return buf;
@@ -319,23 +321,24 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
     }
 }
 
+/*
 void Controller::editorSave()
 {
-    if (model->filename == NULL)
+    if (model->filename.empty())
     {
         model->filename = editorPrompt("Save as: %s (ESC to cancel)", NULL);
-        if (model->filename == NULL)
+        if (model->filename.empty())
         {
-            model->editorSetStatusMessage("Save aborted");
+            model->setStatusMessage("Save aborted");
             return;
         }
-        model->editorSelectSyntaxHighlight();
+        model->selectSyntaxHighlight();
     }
 
     int len;
     char *buf = editorRowsToString(&len);
 
-    int fd = open(model->filename, O_RDWR | O_CREAT, 0644);
+    int fd = open(model->filename.c_str(), O_RDWR | O_CREAT, 0644);
     if (fd != -1)
     {
         if (ftruncate(fd, len) != -1)
@@ -345,7 +348,7 @@ void Controller::editorSave()
                 close(fd);
                 free(buf);
                 model->dirty = 0;
-                model->editorSetStatusMessage("%d bytes written to disk", len);
+                model->setStatusMessage("%d bytes written to disk", len);
                 return;
             }
         }
@@ -353,9 +356,11 @@ void Controller::editorSave()
     }
 
     free(buf);
-    model->editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
+    model->setStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
+*/
 
+/*
 char *Controller::editorRowsToString(int *buflen)
 {
     int totlen = 0;
@@ -375,6 +380,44 @@ char *Controller::editorRowsToString(int *buflen)
     }
 
     return buf;
+}
+*/
+
+/*
+TODO: Eventually we want to do the following:
+More advanced editors will write to a new, temporary file, and then rename that file to 
+the actual file the user wants to overwrite, and they’ll carefully check for errors through the whole process.
+This prevents errors after we erase the file from ruining everything
+*/
+void Controller::saveFile()
+{
+    if (model->filename.empty())
+    {
+        model->filename = editorPrompt("Save as: %s (ESC to cancel)", NULL);
+        if (model->filename.empty())
+        {
+            model->setStatusMessage("Save aborted");
+            return;
+        }
+        model->selectSyntaxHighlight();
+    }
+
+    int len = 0;
+
+    std::ofstream saveFile(model->filename, std::ios::out | std::ios::trunc);
+
+    if(saveFile.is_open()) {
+        for(int i = 0; i < model->numrows; ++i) {
+            saveFile << model->row[i].contents << "\n";
+            len += model->row[i].contents.length() + 1;
+        }
+        model->dirty = 0;
+        model->setStatusMessage("%d bytes written to disk", len);
+        saveFile.close();
+    }
+    else {
+        model->setStatusMessage("Can't save! IO error: TODO");
+    }
 }
 
 void Controller::editorFindCallback(char *query, int key)
@@ -430,7 +473,7 @@ void Controller::editorFindCallback(char *query, int key)
         {
             last_match = current;
             model->cy = current;
-            model->cx = model->editorRowRxToCx(row, match - row->render);
+            model->cx = model->rowRxToCx(row, match - row->render);
             model->rowoff = model->numrows;
 
             saved_hl_line = current;

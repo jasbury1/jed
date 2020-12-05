@@ -36,10 +36,12 @@ private:
     void moveCursor(int key);
     void scroll();
     char *editorPrompt(char *prompt, void (*callback)(char *, int));
-    void editorSave();
+    //void editorSave();
+    void saveFile();
     void editorFind();
     void editorFindCallback(char *query, int key);
-    char *editorRowsToString(int *buflen);
+    //char *editorRowsToString(int *buflen);
+
 };
 
 #endif // CONTROLLER_H

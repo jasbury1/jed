@@ -3,6 +3,7 @@
 
 class View {
 public:
+    //NVI idiom style draw method should call overridden drawView() method
     void draw() {
         drawView();
     }
