@@ -38,9 +38,9 @@ void TerminalView::editorDrawRows(std::string& displayStr)
     for (y = 0; y < model->screenrows; y++)
     {
         int filerow = y + model->rowoff;
-        if (filerow >= model->numrows)
+        if (filerow >= model->numRows())
         {
-            if (model->numrows == 0 && y == model->screenrows / 3)
+            if (model->numRows() == 0 && y == model->screenrows / 3)
             {
                 char welcome[80];
                 int welcomelen = snprintf(welcome, sizeof(welcome),
@@ -64,13 +64,13 @@ void TerminalView::editorDrawRows(std::string& displayStr)
         }
         else
         {
-            int len = model->row[filerow].rsize - model->coloff;
+            int len = model->rowList[filerow].rsize - model->coloff;
             if (len < 0)
                 len = 0;
             if (len > model->screencols)
                 len = model->screencols;
-            char *c = &model->row[filerow].render[model->coloff];
-            unsigned char *hl = &model->row[filerow].hl[model->coloff];
+            char *c = &model->rowList[filerow].render[model->coloff];
+            unsigned char *hl = &model->rowList[filerow].hl[model->coloff];
             int current_color = -1;
             int j;
             for (j = 0; j < len; j++)
@@ -123,10 +123,10 @@ void TerminalView::editorDrawStatusBar(std::string& displayStr)
     displayStr.append("\x1b[7m", 4);
     char status[80], rstatus[80];
     int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-                       model->filename.empty() ? model->filename.c_str() : "[No Name]", model->numrows,
+                       model->filename.empty() ? model->filename.c_str() : "[No Name]", model->numRows(),
                        model->dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
-                        model->syntax ? model->syntax->filetype : "no ft", model->cy + 1, model->numrows);
+                        model->syntax ? model->syntax->filetype : "no ft", model->cy + 1, model->numRows());
     if (len > model->screencols)
         len = model->screencols;
     displayStr.append(status, len);

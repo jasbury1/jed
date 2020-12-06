@@ -27,7 +27,7 @@ struct Model::editorSyntax Model::HLDB[] = {
 
 #define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
 
-Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), numrows(0), row(NULL), dirty(0), statusmsg_time(0), syntax(NULL)
+Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), dirty(0), statusmsg_time(0), syntax(NULL)
 {
     statusmsg[0] = '\0';
 
@@ -42,190 +42,70 @@ Model::~Model()
 {
 }
 
-int Model::getWindowSize(int *rows, int *cols)
+void Model::openFile(const std::string &inputFile)
 {
-    struct winsize ws;
+    filename = inputFile;
 
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0)
+    selectSyntaxHighlight();
+
+    std::ifstream infile(inputFile);
+    if (infile.is_open())
     {
-        if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
-            return -1;
-        return getCursorPosition(rows, cols);
+        std::string line;
+        while (getline(infile, line))
+        {
+            auto linelen = line.length();
+            while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
+            {
+                linelen--;
+            }
+            insertRow(numRows(), line, 0, linelen);
+        }
+
+        infile.close();
+        dirty = 0;
     }
     else
     {
-        *cols = ws.ws_col;
-        *rows = ws.ws_row;
-        return 0;
+        //TODO: We could not open the file
     }
 }
 
-int Model::getCursorPosition(int *rows, int *cols)
+void Model::selectSyntaxHighlight()
 {
-    char buf[32];
-    unsigned int i = 0;
-
-    if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
-        return -1;
-
-    while (i < sizeof(buf) - 1)
-    {
-        if (read(STDIN_FILENO, &buf[i], 1) != 1)
-            break;
-        if (buf[i] == 'R')
-            break;
-        i++;
+    syntax = NULL;
+    if (filename.empty())
+        return;
+    auto pos = filename.rfind(".");
+    if(pos == std::string::npos) {
+        return;
     }
-    buf[i] = '\0';
 
-    if (buf[0] != '\x1b' || buf[1] != '[')
-        return -1;
-    if (sscanf(&buf[2], "%d;%d", rows, cols) != 2)
-        return -1;
+    std::string ext = filename.substr(pos);
 
-    return 0;
-}
-
-void Model::setStatusMessage(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(statusmsg, sizeof(statusmsg), fmt, ap);
-    va_end(ap);
-    statusmsg_time = time(NULL);
-}
-
-int Model::rowCxToRx(Model::erow *row, int cx)
-{
-    int rx = 0;
-    int j;
-    for (j = 0; j < cx; j++)
+    for (unsigned int j = 0; j < HLDB_ENTRIES; j++)
     {
-        if (row->contents[j] == '\t')
-            rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
-        rx++;
-    }
-    return rx;
-}
-
-int Model::rowRxToCx(Model::erow *row, int rx)
-{
-    int cur_rx = 0;
-    int cx;
-    for (cx = 0; cx < row->size; cx++)
-    {
-        if (row->contents[cx] == '\t')
-            cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);
-        cur_rx++;
-
-        if (cur_rx > rx)
-            return cx;
-    }
-    return cx;
-}
-
-void Model::updateRowRender(Model::erow *newRow)
-{
-    int tabs = 0;
-    int j;
-    for (j = 0; j < newRow->size; j++)
-        if (newRow->contents[j] == '\t')
-            tabs++;
-
-    free(newRow->render);
-    newRow->render = (char *)malloc(newRow->size + tabs * (KILO_TAB_STOP - 1) + 1);
-
-    int idx = 0;
-    for (j = 0; j < newRow->size; j++)
-    {
-        if (newRow->contents[j] == '\t')
+        struct Model::editorSyntax *s = &HLDB[j];
+        unsigned int i = 0;
+        while (s->filematch[i])
         {
-            newRow->render[idx++] = ' ';
-            while (idx % KILO_TAB_STOP != 0)
-                newRow->render[idx++] = ' ';
-        }
-        else
-        {
-            newRow->render[idx++] = newRow->contents[j];
+            int is_ext = (s->filematch[i][0] == '.');
+            if ((is_ext && ext.c_str() && !strcmp(ext.c_str(), s->filematch[i])) ||
+                (!is_ext && strstr(filename.c_str(), s->filematch[i])))
+            {
+                syntax = s;
+
+                int filerow;
+                for (filerow = 0; filerow < numRows(); filerow++)
+                {
+                    updateSyntax(&rowList[filerow]);
+                }
+
+                return;
+            }
+            i++;
         }
     }
-    newRow->render[idx] = '\0';
-    newRow->rsize = idx;
-
-    updateSyntax(newRow);
-}
-
-//TODO: Add default parameters here for start and len?
-void Model::insertRow(int at, const std::string &str, int startIndex, std::size_t len)
-{
-    if (at < 0 || at > numrows)
-        return;
-
-    //TODO: Bounds check for len and startIndex
-
-    row = (Model::erow *)realloc(row, sizeof(Model::erow) * (numrows + 1));
-    // Shift all rows forward
-    memmove(&row[at + 1], &row[at], sizeof(Model::erow) * (numrows - at));
-    // Increase the internal index number for each row
-    for (int j = at + 1; j <= numrows; j++)
-        row[j].idx++;
-
-    row[at].idx = at;
-
-    row[at].size = len;
-    row[at].contents = str.substr(startIndex, len);
-
-    row[at].rsize = 0;
-    row[at].render = NULL;
-    row[at].hl = NULL;
-    row[at].hl_open_comment = 0;
-    updateRowRender(&row[at]);
-
-    numrows++;
-    dirty++;
-}
-
-//TODO: This needs to be removed entirely. Make it a destructor
-void Model::freeRow(Model::erow *curRow)
-{
-    free(curRow->render);
-    free(curRow->hl);
-}
-
-void Model::deleteRow(int at) {
-    if (at < 0 || at >= numrows)
-        return;
-    freeRow(&row[at]);
-    memmove(&row[at], &row[at + 1], sizeof(Model::erow) * (numrows - at - 1));
-    for (int j = at; j < numrows - 1; j++)
-        row[j].idx--;
-    numrows--;
-    dirty++; 
-}
-
-void Model::insertChar(int c)
-{
-    if (cy == numrows)
-    {
-        insertRow(numrows, "", 0, 0);
-    }
-    rowInsertChar(c);
-    cx++;
-}
-
-void Model::rowInsertChar(int c) {
-    Model::erow *curRow = &row[cy];
-    int at = cx;
-
-    // TODO: Is this check even necessary??
-    if (at < 0 || at > curRow->size)
-        at = curRow->size;
-
-    curRow->contents.insert(at, 1, c);
-    curRow->size++;
-
-    updateRowRender(curRow);
-    dirty++; 
 }
 
 void Model::updateSyntax(Model::erow *curRow)
@@ -248,7 +128,7 @@ void Model::updateSyntax(Model::erow *curRow)
 
     int prev_sep = 1;
     int in_string = 0;
-    int in_comment = (curRow->idx > 0 && row[curRow->idx - 1].hl_open_comment);
+    int in_comment = (curRow->idx > 0 && rowList[curRow->idx - 1].hl_open_comment);
 
     int i = 0;
     while (i < curRow->rsize)
@@ -365,15 +245,153 @@ void Model::updateSyntax(Model::erow *curRow)
 
     int changed = (curRow->hl_open_comment != in_comment);
     curRow->hl_open_comment = in_comment;
-    if (changed && curRow->idx + 1 < numrows)
-        updateSyntax(&row[curRow->idx + 1]);
+    if (changed && curRow->idx + 1 < numRows())
+        updateSyntax(&rowList[curRow->idx + 1]);
 }
 
-
-
-int Model::isSeparator(int c)
+int Model::getWindowSize(int *rows, int *cols)
 {
-    return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
+    struct winsize ws;
+
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0)
+    {
+        if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
+            return -1;
+        return getCursorPosition(rows, cols);
+    }
+    else
+    {
+        *cols = ws.ws_col;
+        *rows = ws.ws_row;
+        return 0;
+    }
+}
+
+int Model::getCursorPosition(int *rows, int *cols)
+{
+    char buf[32];
+    unsigned int i = 0;
+
+    if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
+        return -1;
+
+    while (i < sizeof(buf) - 1)
+    {
+        if (read(STDIN_FILENO, &buf[i], 1) != 1)
+            break;
+        if (buf[i] == 'R')
+            break;
+        i++;
+    }
+    buf[i] = '\0';
+
+    if (buf[0] != '\x1b' || buf[1] != '[')
+        return -1;
+    if (sscanf(&buf[2], "%d;%d", rows, cols) != 2)
+        return -1;
+
+    return 0;
+}
+
+void Model::setStatusMessage(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(statusmsg, sizeof(statusmsg), fmt, ap);
+    va_end(ap);
+    statusmsg_time = time(NULL);
+}
+
+void Model::updateRowRender(Model::erow *newRow)
+{
+    int tabs = 0;
+    int j;
+    for (j = 0; j < newRow->size; j++)
+        if (newRow->contents[j] == '\t')
+            tabs++;
+
+    free(newRow->render);
+    newRow->render = (char *)malloc(newRow->size + tabs * (KILO_TAB_STOP - 1) + 1);
+
+    int idx = 0;
+    for (j = 0; j < newRow->size; j++)
+    {
+        if (newRow->contents[j] == '\t')
+        {
+            newRow->render[idx++] = ' ';
+            while (idx % KILO_TAB_STOP != 0)
+                newRow->render[idx++] = ' ';
+        }
+        else
+        {
+            newRow->render[idx++] = newRow->contents[j];
+        }
+    }
+    newRow->render[idx] = '\0';
+    newRow->rsize = idx;
+
+    updateSyntax(newRow);
+}
+
+void Model::insertRow(int at, const std::string str, int startIndex, std::size_t len)
+{
+    if (at < 0 || at > numRows())
+        return;
+
+    //TODO: Bounds check for len and startIndex
+
+    // Increase the internal index number for each row
+    for(int i = at + 1; i < numRows(); ++i) {
+        rowList[i].idx++;
+    }
+    Model::erow newRow;
+    auto rowIt = rowList.insert(rowList.begin() + at, newRow);
+    rowIt->idx = at;
+    rowIt->size = len;
+    rowIt->contents = str.substr(startIndex, len);
+    rowIt->rsize = 0;
+    rowIt->render = NULL;
+    rowIt->hl = NULL;
+    rowIt->hl_open_comment = 0;
+    updateRowRender(&*rowIt);
+
+    dirty++;
+}
+
+void Model::deleteRow(int at) {
+    if (at < 0 || at >= numRows())
+        return;
+    
+    auto rowIt = rowList.erase(rowList.begin() + at);
+    for(; rowIt < rowList.end(); ++rowIt) {
+        rowIt->idx--;
+    }
+    dirty++; 
+}
+
+void Model::insertChar(int c)
+{
+    if (cy == numRows())
+    {
+        insertRow(numRows(), "", 0, 0);
+    }
+    rowInsertChar(c);
+    cx++;
+}
+
+void Model::rowInsertChar(int c) {
+    auto curRow = rowList.begin() + cy;
+    int at = cx;
+
+    // TODO: Is this check even necessary??
+    if (at < 0 || at > curRow->size)
+        at = curRow->size;
+
+    curRow->contents.insert(at, 1, c);
+    curRow->size++;
+
+    updateRowRender(&*curRow);
+    dirty++; 
 }
 
 void Model::insertNewline() {
@@ -383,12 +401,13 @@ void Model::insertNewline() {
     }
     else
     {
-        Model::erow *curRow = &row[cy];
-        insertRow(cy + 1, curRow->contents, cx, curRow->size - cx);
-        curRow = &row[cy];
+        auto curRow = rowList.begin() + cy;
+        auto tempStr = curRow->contents;
+        auto tempSize = curRow->size - cx;
         curRow->size = cx;
         curRow->contents.resize(curRow->size);
-        updateRowRender(curRow);
+        updateRowRender(&*curRow);
+        insertRow(cy + 1, tempStr, cx, tempSize);
     }
     cy++;
     cx = 0;        
@@ -396,99 +415,69 @@ void Model::insertNewline() {
 
 void Model::deleteChar()
 {
-    if (cy == numrows)
+    //TODO: Better bounds checking for rowList index
+    if (cy == numRows())
         return;
     if (cx == 0 && cy == 0)
         return;
 
-    Model::erow *curRow = &row[cy];
+    //auto curRow = rowList[cy];
+
+    // Deleting a character inside the row
     if (cx > 0)
     {
-        if(cx > curRow->size) {
+        if(cx > rowList[cy].size) {
             return;
         }
-        curRow->contents.erase(cx - 1, 1);
-        curRow->size--;
-        updateRowRender(curRow);
+        rowList[cy].contents.erase(cx - 1, 1);
+        rowList[cy].size--;
+        updateRowRender(&rowList[cy]);
         dirty++;
         cx--;
     }
+    // Deleting the row's start to shift the row up
     else
     {
-        cx = row[cy - 1].size;
-        (&row[cy - 1])->contents += curRow->contents;
-        (&row[cy - 1])->size += curRow->size;
-        updateRowRender(&row[cy - 1]);
+        cx = rowList[cy - 1].size;
+        rowList[cy - 1].contents += rowList[cy].contents;
+        rowList[cy - 1].size += rowList[cy].size;
+        updateRowRender(&rowList[cy - 1]);
         dirty++;
         deleteRow(cy);
         cy--;
     } 
 }
 
-void Model::openFile(const std::string &inputFile)
+int Model::isSeparator(int c)
 {
-    filename = inputFile;
-
-    selectSyntaxHighlight();
-
-    std::ifstream infile(inputFile);
-    if (infile.is_open())
-    {
-        std::string line;
-        while (getline(infile, line))
-        {
-            auto linelen = line.length();
-            while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
-            {
-                linelen--;
-            }
-            insertRow(numrows, line, 0, linelen);
-        }
-
-        infile.close();
-        dirty = 0;
-    }
-    else
-    {
-        //TODO: We could not open the file
-    }
+    return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
 }
 
-void Model::selectSyntaxHighlight()
+int Model::rowCxToRx(const Model::erow& row, int cx)
 {
-    syntax = NULL;
-    if (filename.empty())
-        return;
-    auto pos = filename.rfind(".");
-    if(pos == std::string::npos) {
-        return;
-    }
-
-    std::string ext = filename.substr(pos);
-
-    for (unsigned int j = 0; j < HLDB_ENTRIES; j++)
+    int rx = 0;
+    int j;
+    for (j = 0; j < cx; j++)
     {
-        struct Model::editorSyntax *s = &HLDB[j];
-        unsigned int i = 0;
-        while (s->filematch[i])
-        {
-            int is_ext = (s->filematch[i][0] == '.');
-            if ((is_ext && ext.c_str() && !strcmp(ext.c_str(), s->filematch[i])) ||
-                (!is_ext && strstr(filename.c_str(), s->filematch[i])))
-            {
-                syntax = s;
-
-                int filerow;
-                for (filerow = 0; filerow < numrows; filerow++)
-                {
-                    updateSyntax(&row[filerow]);
-                }
-
-                return;
-            }
-            i++;
-        }
+        if (row.contents[j] == '\t')
+            rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+        rx++;
     }
+    return rx;
 }
 
+int Model::rowRxToCx(const Model::erow& row, int rx)
+{
+    int cur_rx = 0;
+    int cx;
+    for (cx = 0; cx < row.size; cx++)
+    {
+        if (row.contents[cx] == '\t')
+            cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);
+        cur_rx++;
 
+        if (cur_rx > rx)
+            return cx;
+    }
+    return cx;
+}

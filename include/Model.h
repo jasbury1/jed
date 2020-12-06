@@ -4,6 +4,7 @@
 #include <time.h>
 #include <termios.h>
 #include <string>
+#include <vector>
 
 #define CTRL_KEY(k) ((k)&0x1f)
 
@@ -34,7 +35,6 @@ public:
         int size;
         int rsize;
         std::string contents;
-        //char *chars;
         char *render;
         unsigned char *hl;
         int hl_open_comment;
@@ -62,8 +62,7 @@ public:
     int coloff;
     int screenrows;
     int screencols;
-    int numrows;
-    erow *row;
+    std::vector<erow> rowList;
     int dirty;
     //char *filename;
     std::string filename;
@@ -76,17 +75,19 @@ public:
     void openFile(const std::string& inputFile);
     void setStatusMessage(const char *fmt, ...);
     void selectSyntaxHighlight();
-    int rowCxToRx(Model::erow *row, int cx);
-    int rowRxToCx(Model::erow *row, int rx);
+    int rowCxToRx(const Model::erow& row, int cx);
+    int rowRxToCx(const Model::erow& row, int rx);
     void insertChar(int c);
     void deleteChar();
     void insertNewline();
+    int numRows() const {return rowList.size();}
 
 private:
-    void insertRow(int at, const std::string &str, int startIndex, std::size_t len);
+    void insertRow(int at, const std::string str, int startIndex, std::size_t len);
+    void deleteRow(int at);
+
     void updateRowRender(erow *newRow);
     void rowInsertChar(int c);
-    void deleteRow(int at);
     void freeRow(erow *curRow);
     int isSeparator(int c);
     void updateSyntax(erow *curRow);

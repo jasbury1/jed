@@ -50,8 +50,8 @@ void Controller::processInput()
         break;
 
     case END_KEY:
-        if (model->cy < model->numrows)
-            model->cx = model->row[model->cy].size;
+        if (model->cy < model->numRows())
+            model->cx = model->rowList[model->cy].size;
         break;
 
     case CTRL_KEY('f'):
@@ -76,8 +76,8 @@ void Controller::processInput()
         else if (c == PAGE_DOWN)
         {
             model->cy = model->rowoff + model->screenrows - 1;
-            if (model->cy > model->numrows)
-                model->cy = model->numrows;
+            if (model->cy > model->numRows())
+                model->cy = model->numRows();
         }
 
         int times = model->screenrows;
@@ -195,9 +195,9 @@ int Controller::readKey()
 void Controller::scroll()
 {
     model->rx = 0;
-    if (model->cy < model->numrows)
+    if (model->cy < model->numRows())
     {
-        model->rx = model->rowCxToRx(&model->row[model->cy], model->cx);
+        model->rx = model->rowCxToRx(model->rowList[model->cy], model->cx);
     }
 
     if (model->cy < model->rowoff)
@@ -220,7 +220,7 @@ void Controller::scroll()
 
 void Controller::moveCursor(int key)
 {
-    Model::erow *row = (model->cy >= model->numrows) ? NULL : &model->row[model->cy];
+    Model::erow *row = (model->cy >= model->numRows()) ? NULL : &model->rowList[model->cy];
 
     switch (key)
     {
@@ -232,7 +232,7 @@ void Controller::moveCursor(int key)
         else if (model->cy > 0)
         {
             model->cy--;
-            model->cx = model->row[model->cy].size;
+            model->cx = model->rowList[model->cy].size;
         }
         break;
     case ARROW_RIGHT:
@@ -253,14 +253,14 @@ void Controller::moveCursor(int key)
         }
         break;
     case ARROW_DOWN:
-        if (model->cy < model->numrows)
+        if (model->cy < model->numRows())
         {
             model->cy++;
         }
         break;
     }
 
-    row = (model->cy >= model->numrows) ? NULL : &model->row[model->cy];
+    row = (model->cy >= model->numRows()) ? NULL : &model->rowList[model->cy];
     int rowlen = row ? row->size : 0;
     if (model->cx > rowlen)
     {
@@ -322,68 +322,6 @@ char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
 }
 
 /*
-void Controller::editorSave()
-{
-    if (model->filename.empty())
-    {
-        model->filename = editorPrompt("Save as: %s (ESC to cancel)", NULL);
-        if (model->filename.empty())
-        {
-            model->setStatusMessage("Save aborted");
-            return;
-        }
-        model->selectSyntaxHighlight();
-    }
-
-    int len;
-    char *buf = editorRowsToString(&len);
-
-    int fd = open(model->filename.c_str(), O_RDWR | O_CREAT, 0644);
-    if (fd != -1)
-    {
-        if (ftruncate(fd, len) != -1)
-        {
-            if (write(fd, buf, len) == len)
-            {
-                close(fd);
-                free(buf);
-                model->dirty = 0;
-                model->setStatusMessage("%d bytes written to disk", len);
-                return;
-            }
-        }
-        close(fd);
-    }
-
-    free(buf);
-    model->setStatusMessage("Can't save! I/O error: %s", strerror(errno));
-}
-*/
-
-/*
-char *Controller::editorRowsToString(int *buflen)
-{
-    int totlen = 0;
-    int j;
-    for (j = 0; j < model->numrows; j++)
-        totlen += model->row[j].size + 1;
-    *buflen = totlen;
-
-    char *buf = (char *)malloc(totlen);
-    char *p = buf;
-    for (j = 0; j < model->numrows; j++)
-    {
-        memcpy(p, model->row[j].chars, model->row[j].size);
-        p += model->row[j].size;
-        *p = '\n';
-        p++;
-    }
-
-    return buf;
-}
-*/
-
-/*
 TODO: Eventually we want to do the following:
 More advanced editors will write to a new, temporary file, and then rename that file to 
 the actual file the user wants to overwrite, and they’ll carefully check for errors through the whole process.
@@ -407,9 +345,9 @@ void Controller::saveFile()
     std::ofstream saveFile(model->filename, std::ios::out | std::ios::trunc);
 
     if(saveFile.is_open()) {
-        for(int i = 0; i < model->numrows; ++i) {
-            saveFile << model->row[i].contents << "\n";
-            len += model->row[i].contents.length() + 1;
+        for(int i = 0; i < model->numRows(); ++i) {
+            saveFile << model->rowList[i].contents << "\n";
+            len += model->rowList[i].contents.length() + 1;
         }
         model->dirty = 0;
         model->setStatusMessage("%d bytes written to disk", len);
@@ -430,7 +368,7 @@ void Controller::editorFindCallback(char *query, int key)
 
     if (saved_hl)
     {
-        memcpy(model->row[saved_hl_line].hl, saved_hl, model->row[saved_hl_line].rsize);
+        memcpy(model->rowList[saved_hl_line].hl, saved_hl, model->rowList[saved_hl_line].rsize);
         free(saved_hl);
         saved_hl = NULL;
     }
@@ -459,22 +397,22 @@ void Controller::editorFindCallback(char *query, int key)
         direction = 1;
     int current = last_match;
     int i;
-    for (i = 0; i < model->numrows; i++)
+    for (i = 0; i < model->numRows(); i++)
     {
         current += direction;
         if (current == -1)
-            current = model->numrows - 1;
-        else if (current == model->numrows)
+            current = model->numRows() - 1;
+        else if (current == model->numRows())
             current = 0;
 
-        Model::erow *row = &model->row[current];
+        Model::erow *row = &model->rowList[current];
         char *match = strstr(row->render, query);
         if (match)
         {
             last_match = current;
             model->cy = current;
-            model->cx = model->rowRxToCx(row, match - row->render);
-            model->rowoff = model->numrows;
+            model->cx = model->rowRxToCx(*row, match - row->render);
+            model->rowoff = model->numRows();
 
             saved_hl_line = current;
             saved_hl = (char *)malloc(row->rsize);
