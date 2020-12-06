@@ -98,7 +98,7 @@ void Model::selectSyntaxHighlight()
                 int filerow;
                 for (filerow = 0; filerow < numRows(); filerow++)
                 {
-                    updateSyntax(&rowList[filerow]);
+                    updateSyntax(rowList[filerow]);
                 }
 
                 return;
@@ -108,10 +108,10 @@ void Model::selectSyntaxHighlight()
     }
 }
 
-void Model::updateSyntax(Model::erow *curRow)
+void Model::updateSyntax(Model::erow& curRow)
 {
-    curRow->hl = (unsigned char *)realloc(curRow->hl, curRow->rsize);
-    memset(curRow->hl, HL_NORMAL, curRow->rsize);
+    curRow.hl = (unsigned char *)realloc(curRow.hl, curRow.rsize);
+    memset(curRow.hl, HL_NORMAL, curRow.rsize);
 
     if (syntax == NULL)
         return;
@@ -128,19 +128,19 @@ void Model::updateSyntax(Model::erow *curRow)
 
     int prev_sep = 1;
     int in_string = 0;
-    int in_comment = (curRow->idx > 0 && rowList[curRow->idx - 1].hl_open_comment);
+    int in_comment = (curRow.idx > 0 && rowList[curRow.idx - 1].hl_open_comment);
 
     int i = 0;
-    while (i < curRow->rsize)
+    while (i < curRow.rsize)
     {
-        char c = curRow->render[i];
-        unsigned char prev_hl = (i > 0) ? curRow->hl[i - 1] : HL_NORMAL;
+        char c = curRow.render[i];
+        unsigned char prev_hl = (i > 0) ? curRow.hl[i - 1] : HL_NORMAL;
 
         if (scs_len && !in_string && !in_comment)
         {
-            if (!strncmp(&curRow->render[i], scs, scs_len))
+            if (!strncmp(&curRow.render[i], scs, scs_len))
             {
-                memset(&curRow->hl[i], HL_COMMENT, curRow->rsize - i);
+                memset(&curRow.hl[i], HL_COMMENT, curRow.rsize - i);
                 break;
             }
         }
@@ -149,10 +149,10 @@ void Model::updateSyntax(Model::erow *curRow)
         {
             if (in_comment)
             {
-                curRow->hl[i] = HL_MLCOMMENT;
-                if (!strncmp(&curRow->render[i], mce, mce_len))
+                curRow.hl[i] = HL_MLCOMMENT;
+                if (!strncmp(&curRow.render[i], mce, mce_len))
                 {
-                    memset(&curRow->hl[i], HL_MLCOMMENT, mce_len);
+                    memset(&curRow.hl[i], HL_MLCOMMENT, mce_len);
                     i += mce_len;
                     in_comment = 0;
                     prev_sep = 1;
@@ -164,9 +164,9 @@ void Model::updateSyntax(Model::erow *curRow)
                     continue;
                 }
             }
-            else if (!strncmp(&curRow->render[i], mcs, mcs_len))
+            else if (!strncmp(&curRow.render[i], mcs, mcs_len))
             {
-                memset(&curRow->hl[i], HL_MLCOMMENT, mcs_len);
+                memset(&curRow.hl[i], HL_MLCOMMENT, mcs_len);
                 i += mcs_len;
                 in_comment = 1;
                 continue;
@@ -177,10 +177,10 @@ void Model::updateSyntax(Model::erow *curRow)
         {
             if (in_string)
             {
-                curRow->hl[i] = HL_STRING;
-                if (c == '\\' && i + 1 < curRow->rsize)
+                curRow.hl[i] = HL_STRING;
+                if (c == '\\' && i + 1 < curRow.rsize)
                 {
-                    curRow->hl[i + 1] = HL_STRING;
+                    curRow.hl[i + 1] = HL_STRING;
                     i += 2;
                     continue;
                 }
@@ -195,7 +195,7 @@ void Model::updateSyntax(Model::erow *curRow)
                 if (c == '"' || c == '\'')
                 {
                     in_string = c;
-                    curRow->hl[i] = HL_STRING;
+                    curRow.hl[i] = HL_STRING;
                     i++;
                     continue;
                 }
@@ -207,7 +207,7 @@ void Model::updateSyntax(Model::erow *curRow)
             if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) ||
                 (c == '.' && prev_hl == HL_NUMBER))
             {
-                curRow->hl[i] = HL_NUMBER;
+                curRow.hl[i] = HL_NUMBER;
                 i++;
                 prev_sep = 0;
                 continue;
@@ -224,10 +224,10 @@ void Model::updateSyntax(Model::erow *curRow)
                 if (kw2)
                     klen--;
 
-                if (!strncmp(&curRow->render[i], keywords[j], klen) &&
-                    isSeparator(curRow->render[i + klen]))
+                if (!strncmp(&curRow.render[i], keywords[j], klen) &&
+                    isSeparator(curRow.render[i + klen]))
                 {
-                    memset(&curRow->hl[i], kw2 ? HL_KEYWORD2 : HL_KEYWORD1, klen);
+                    memset(&curRow.hl[i], kw2 ? HL_KEYWORD2 : HL_KEYWORD1, klen);
                     i += klen;
                     break;
                 }
@@ -243,10 +243,10 @@ void Model::updateSyntax(Model::erow *curRow)
         i++;
     }
 
-    int changed = (curRow->hl_open_comment != in_comment);
-    curRow->hl_open_comment = in_comment;
-    if (changed && curRow->idx + 1 < numRows())
-        updateSyntax(&rowList[curRow->idx + 1]);
+    int changed = (curRow.hl_open_comment != in_comment);
+    curRow.hl_open_comment = in_comment;
+    if (changed && curRow.idx + 1 < numRows())
+        updateSyntax(rowList[curRow.idx + 1]);
 }
 
 int Model::getWindowSize(int *rows, int *cols)
@@ -302,33 +302,33 @@ void Model::setStatusMessage(const char *fmt, ...)
     statusmsg_time = time(NULL);
 }
 
-void Model::updateRowRender(Model::erow *newRow)
+void Model::updateRowRender(Model::erow& newRow)
 {
     int tabs = 0;
     int j;
-    for (j = 0; j < newRow->size; j++)
-        if (newRow->contents[j] == '\t')
+    for (j = 0; j < newRow.size; j++)
+        if (newRow.contents[j] == '\t')
             tabs++;
 
-    free(newRow->render);
-    newRow->render = (char *)malloc(newRow->size + tabs * (KILO_TAB_STOP - 1) + 1);
+    free(newRow.render);
+    newRow.render = (char *)malloc(newRow.size + tabs * (KILO_TAB_STOP - 1) + 1);
 
     int idx = 0;
-    for (j = 0; j < newRow->size; j++)
+    for (j = 0; j < newRow.size; j++)
     {
-        if (newRow->contents[j] == '\t')
+        if (newRow.contents[j] == '\t')
         {
-            newRow->render[idx++] = ' ';
+            newRow.render[idx++] = ' ';
             while (idx % KILO_TAB_STOP != 0)
-                newRow->render[idx++] = ' ';
+                newRow.render[idx++] = ' ';
         }
         else
         {
-            newRow->render[idx++] = newRow->contents[j];
+            newRow.render[idx++] = newRow.contents[j];
         }
     }
-    newRow->render[idx] = '\0';
-    newRow->rsize = idx;
+    newRow.render[idx] = '\0';
+    newRow.rsize = idx;
 
     updateSyntax(newRow);
 }
@@ -353,7 +353,7 @@ void Model::insertRow(int at, const std::string str, int startIndex, std::size_t
     rowIt->render = NULL;
     rowIt->hl = NULL;
     rowIt->hl_open_comment = 0;
-    updateRowRender(&*rowIt);
+    updateRowRender(*rowIt);
 
     dirty++;
 }
@@ -390,7 +390,7 @@ void Model::rowInsertChar(int c) {
     curRow->contents.insert(at, 1, c);
     curRow->size++;
 
-    updateRowRender(&*curRow);
+    updateRowRender(*curRow);
     dirty++; 
 }
 
@@ -406,7 +406,7 @@ void Model::insertNewline() {
         auto tempSize = curRow->size - cx;
         curRow->size = cx;
         curRow->contents.resize(curRow->size);
-        updateRowRender(&*curRow);
+        updateRowRender(*curRow);
         insertRow(cy + 1, tempStr, cx, tempSize);
     }
     cy++;
@@ -431,7 +431,7 @@ void Model::deleteChar()
         }
         rowList[cy].contents.erase(cx - 1, 1);
         rowList[cy].size--;
-        updateRowRender(&rowList[cy]);
+        updateRowRender(rowList[cy]);
         dirty++;
         cx--;
     }
@@ -441,7 +441,7 @@ void Model::deleteChar()
         cx = rowList[cy - 1].size;
         rowList[cy - 1].contents += rowList[cy].contents;
         rowList[cy - 1].size += rowList[cy].size;
-        updateRowRender(&rowList[cy - 1]);
+        updateRowRender(rowList[cy - 1]);
         dirty++;
         deleteRow(cy);
         cy--;

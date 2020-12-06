@@ -86,11 +86,11 @@ private:
     void insertRow(int at, const std::string str, int startIndex, std::size_t len);
     void deleteRow(int at);
 
-    void updateRowRender(erow *newRow);
+    void updateRowRender(erow& newRow);
     void rowInsertChar(int c);
     void freeRow(erow *curRow);
     int isSeparator(int c);
-    void updateSyntax(erow *curRow);
+    void updateSyntax(erow& curRow);
     int getWindowSize(int *rows, int *cols);
     int getCursorPosition(int *rows, int *cols);
 
