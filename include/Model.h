@@ -31,12 +31,12 @@ public:
 
     typedef struct erow
     {
-        int idx;
+        int idx;    
         int size;
         int rsize;
         std::string contents;
-        char *render;
-        unsigned char *hl;
+        std::string render;
+        std::vector<unsigned char> highlight;
         int hl_open_comment;
     } erow;
 
@@ -88,7 +88,6 @@ private:
 
     void updateRowRender(erow& newRow);
     void rowInsertChar(int c);
-    void freeRow(erow *curRow);
     int isSeparator(int c);
     void updateSyntax(erow& curRow);
     int getWindowSize(int *rows, int *cols);

@@ -40,6 +40,7 @@ void TerminalView::editorDrawRows(std::string& displayStr)
         int filerow = y + model->rowoff;
         if (filerow >= model->numRows())
         {
+            // File is empty. Draw a temporary welcome message
             if (model->numRows() == 0 && y == model->screenrows / 3)
             {
                 char welcome[80];
@@ -57,11 +58,13 @@ void TerminalView::editorDrawRows(std::string& displayStr)
                     displayStr.append(" ", 1);
                 displayStr.append(welcome, welcomelen);
             }
+            // Rows that don't yet exist are represented by ~
             else
             {
                 displayStr.append("~", 1);
             }
         }
+        // Draw rows from the file
         else
         {
             int len = model->rowList[filerow].rsize - model->coloff;
@@ -69,15 +72,14 @@ void TerminalView::editorDrawRows(std::string& displayStr)
                 len = 0;
             if (len > model->screencols)
                 len = model->screencols;
-            char *c = &model->rowList[filerow].render[model->coloff];
-            unsigned char *hl = &model->rowList[filerow].hl[model->coloff];
+            //char *c = &model->rowList[filerow].render.c_str()[model->coloff];
             int current_color = -1;
             int j;
             for (j = 0; j < len; j++)
             {
-                if (iscntrl(c[j]))
+                if (iscntrl(model->rowList[filerow].render[model->coloff + j]))
                 {
-                    char sym = (c[j] <= 26) ? '@' + c[j] : '?';
+                    char sym = (model->rowList[filerow].render[model->coloff + j] <= 26) ? '@' + model->rowList[filerow].render[model->coloff + j] : '?';
                     displayStr.append("\x1b[7m", 4);
                     displayStr.append(&sym, 1);
                     displayStr.append("\x1b[m", 3);
@@ -88,18 +90,18 @@ void TerminalView::editorDrawRows(std::string& displayStr)
                         displayStr.append(buf, clen);
                     }
                 }
-                else if (hl[j] == Model::HL_NORMAL)
+                else if (model->rowList[filerow].highlight[j + model->coloff] == Model::HL_NORMAL)
                 {
                     if (current_color != -1)
                     {
                         displayStr.append("\x1b[39m", 5);
                         current_color = -1;
                     }
-                    displayStr.append(&c[j], 1);
+                    displayStr += model->rowList[filerow].render[model->coloff + j];
                 }
                 else
                 {
-                    int color = editorSyntaxToColor(hl[j]);
+                    int color = editorSyntaxToColor(model->rowList[filerow].highlight[j + model->coloff]);
                     if (color != current_color)
                     {
                         current_color = color;
@@ -107,7 +109,7 @@ void TerminalView::editorDrawRows(std::string& displayStr)
                         int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
                         displayStr.append(buf, clen);
                     }
-                    displayStr.append(&c[j], 1);
+                    displayStr += model->rowList[filerow].render[model->coloff + j];
                 }
             }
             displayStr.append("\x1b[39m", 5);

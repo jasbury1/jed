@@ -360,6 +360,7 @@ void Controller::saveFile()
 
 void Controller::editorFindCallback(char *query, int key)
 {
+    /*
     static int last_match = -1;
     static int direction = 1;
 
@@ -421,6 +422,7 @@ void Controller::editorFindCallback(char *query, int key)
             break;
         }
     }
+    */
 }
 
 void Controller::editorFind()

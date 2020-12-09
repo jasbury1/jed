@@ -110,8 +110,7 @@ void Model::selectSyntaxHighlight()
 
 void Model::updateSyntax(Model::erow& curRow)
 {
-    curRow.hl = (unsigned char *)realloc(curRow.hl, curRow.rsize);
-    memset(curRow.hl, HL_NORMAL, curRow.rsize);
+    curRow.highlight = std::vector<unsigned char>(curRow.rsize, HL_NORMAL);
 
     if (syntax == NULL)
         return;
@@ -131,16 +130,16 @@ void Model::updateSyntax(Model::erow& curRow)
     int in_comment = (curRow.idx > 0 && rowList[curRow.idx - 1].hl_open_comment);
 
     int i = 0;
-    while (i < curRow.rsize)
+    while (i < curRow.highlight.size())
     {
         char c = curRow.render[i];
-        unsigned char prev_hl = (i > 0) ? curRow.hl[i - 1] : HL_NORMAL;
+        unsigned char prev_hl = (i > 0) ? curRow.highlight[i - 1] : HL_NORMAL;
 
         if (scs_len && !in_string && !in_comment)
         {
             if (!strncmp(&curRow.render[i], scs, scs_len))
             {
-                memset(&curRow.hl[i], HL_COMMENT, curRow.rsize - i);
+                std::fill_n(curRow.highlight.begin() + i, curRow.highlight.size() - i, HL_COMMENT);
                 break;
             }
         }
@@ -149,10 +148,10 @@ void Model::updateSyntax(Model::erow& curRow)
         {
             if (in_comment)
             {
-                curRow.hl[i] = HL_MLCOMMENT;
+                curRow.highlight[i] = HL_MLCOMMENT;
                 if (!strncmp(&curRow.render[i], mce, mce_len))
                 {
-                    memset(&curRow.hl[i], HL_MLCOMMENT, mce_len);
+                    std::fill_n(curRow.highlight.begin() + i, mce_len, HL_MLCOMMENT);
                     i += mce_len;
                     in_comment = 0;
                     prev_sep = 1;
@@ -166,7 +165,7 @@ void Model::updateSyntax(Model::erow& curRow)
             }
             else if (!strncmp(&curRow.render[i], mcs, mcs_len))
             {
-                memset(&curRow.hl[i], HL_MLCOMMENT, mcs_len);
+                std::fill_n(curRow.highlight.begin() + i, mcs_len, HL_MLCOMMENT);
                 i += mcs_len;
                 in_comment = 1;
                 continue;
@@ -177,10 +176,10 @@ void Model::updateSyntax(Model::erow& curRow)
         {
             if (in_string)
             {
-                curRow.hl[i] = HL_STRING;
+                curRow.highlight[i] = HL_STRING;
                 if (c == '\\' && i + 1 < curRow.rsize)
                 {
-                    curRow.hl[i + 1] = HL_STRING;
+                    curRow.highlight[i + 1] = HL_STRING;
                     i += 2;
                     continue;
                 }
@@ -195,7 +194,7 @@ void Model::updateSyntax(Model::erow& curRow)
                 if (c == '"' || c == '\'')
                 {
                     in_string = c;
-                    curRow.hl[i] = HL_STRING;
+                    curRow.highlight[i] = HL_STRING;
                     i++;
                     continue;
                 }
@@ -207,7 +206,7 @@ void Model::updateSyntax(Model::erow& curRow)
             if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) ||
                 (c == '.' && prev_hl == HL_NUMBER))
             {
-                curRow.hl[i] = HL_NUMBER;
+                curRow.highlight[i] = HL_NUMBER;
                 i++;
                 prev_sep = 0;
                 continue;
@@ -227,7 +226,7 @@ void Model::updateSyntax(Model::erow& curRow)
                 if (!strncmp(&curRow.render[i], keywords[j], klen) &&
                     isSeparator(curRow.render[i + klen]))
                 {
-                    memset(&curRow.hl[i], kw2 ? HL_KEYWORD2 : HL_KEYWORD1, klen);
+                    std::fill_n(curRow.highlight.begin() + i, klen, kw2 ? HL_KEYWORD2 : HL_KEYWORD1);
                     i += klen;
                     break;
                 }
@@ -304,32 +303,20 @@ void Model::setStatusMessage(const char *fmt, ...)
 
 void Model::updateRowRender(Model::erow& newRow)
 {
-    int tabs = 0;
-    int j;
-    for (j = 0; j < newRow.size; j++)
-        if (newRow.contents[j] == '\t')
-            tabs++;
-
-    free(newRow.render);
-    newRow.render = (char *)malloc(newRow.size + tabs * (KILO_TAB_STOP - 1) + 1);
-
-    int idx = 0;
-    for (j = 0; j < newRow.size; j++)
-    {
-        if (newRow.contents[j] == '\t')
-        {
-            newRow.render[idx++] = ' ';
-            while (idx % KILO_TAB_STOP != 0)
-                newRow.render[idx++] = ' ';
+    newRow.render = "";
+    for(auto& c : newRow.contents) {
+        // Replace tabs with spaces
+        if(c == '\t') {
+            for(int j = 0; j < KILO_TAB_STOP; ++j) {
+                newRow.render += " ";
+            }
         }
-        else
-        {
-            newRow.render[idx++] = newRow.contents[j];
+        // Copy over all regular characters
+        else {
+            newRow.render += c;
         }
     }
-    newRow.render[idx] = '\0';
-    newRow.rsize = idx;
-
+    newRow.rsize = newRow.render.size();
     updateSyntax(newRow);
 }
 
@@ -350,8 +337,6 @@ void Model::insertRow(int at, const std::string str, int startIndex, std::size_t
     rowIt->size = len;
     rowIt->contents = str.substr(startIndex, len);
     rowIt->rsize = 0;
-    rowIt->render = NULL;
-    rowIt->hl = NULL;
     rowIt->hl_open_comment = 0;
     updateRowRender(*rowIt);
 
