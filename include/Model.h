@@ -32,8 +32,6 @@ public:
     typedef struct erow
     {
         int idx;    
-        int size;
-        int rsize;
         std::string contents;
         std::string render;
         std::vector<unsigned char> highlight;
@@ -62,7 +60,6 @@ public:
     int coloff;
     int screenrows;
     int screencols;
-    std::vector<erow> rowList;
     int dirty;
     //char *filename;
     std::string filename;
@@ -80,12 +77,41 @@ public:
     void insertChar(int c);
     void deleteChar();
     void insertNewline();
+
+    // Getters for various length values
     int numRows() const {return rowList.size();}
+    int rowContentLength(int row) const {return rowList[row].contents.size();}
+    int rowContentLength() const {return rowList[cy].contents.size();}
+    int rowRenderLength(int row) const {return rowList[row].render.size();}
+    int rowRenderLength() const {return rowList[cy].render.size();}
+
+    // Getters for the contents and render strings of a given row
+    std::string& rowContents(int row){return rowList[row].contents;}
+    const std::string& rowContents(int row) const {return rowList[row].contents;}
+    std::string& curRowContents(){return rowList[cy].contents;}
+    const std::string& curRowContents() const {return rowList[cy].contents;}
+
+    std::string& rowRender(int row){return rowList[row].render;}
+    const std::string& rowRender(int row) const {return rowList[row].render;}
+    std::string& curRowRender(){return rowList[cy].render;}
+    const std::string& curRowRender() const {return rowList[cy].render;}
+
+    std::vector<unsigned char>& rowHighlight(int row){return rowList[row].highlight;}
+    const std::vector<unsigned char>& rowHighlight(int row) const {return rowList[row].highlight;}
+    std::vector<unsigned char>& curRowHighlight(){return rowList[cy].highlight;}
+    const std::vector<unsigned char>& curRowHighlight() const {return rowList[cy].highlight;}
+
+    // Getters for specific rows
+    const erow& getRow(int row) const {return rowList[row];}
+    const erow& curRow() const {return rowList[cy];}
+    erow& getRow(int row) {return rowList[row];}
+    erow& curRow() {return rowList[cy];}
 
 private:
+    std::vector<erow> rowList;
+
     void insertRow(int at, const std::string str, int startIndex, std::size_t len);
     void deleteRow(int at);
-
     void updateRowRender(erow& newRow);
     void rowInsertChar(int c);
     int isSeparator(int c);

@@ -110,7 +110,7 @@ void Model::selectSyntaxHighlight()
 
 void Model::updateSyntax(Model::erow& curRow)
 {
-    curRow.highlight = std::vector<unsigned char>(curRow.rsize, HL_NORMAL);
+    curRow.highlight = std::vector<unsigned char>(curRow.render.size(), HL_NORMAL);
 
     if (syntax == NULL)
         return;
@@ -177,7 +177,7 @@ void Model::updateSyntax(Model::erow& curRow)
             if (in_string)
             {
                 curRow.highlight[i] = HL_STRING;
-                if (c == '\\' && i + 1 < curRow.rsize)
+                if (c == '\\' && i + 1 < curRow.render.size())
                 {
                     curRow.highlight[i + 1] = HL_STRING;
                     i += 2;
@@ -316,7 +316,6 @@ void Model::updateRowRender(Model::erow& newRow)
             newRow.render += c;
         }
     }
-    newRow.rsize = newRow.render.size();
     updateSyntax(newRow);
 }
 
@@ -334,9 +333,7 @@ void Model::insertRow(int at, const std::string str, int startIndex, std::size_t
     Model::erow newRow;
     auto rowIt = rowList.insert(rowList.begin() + at, newRow);
     rowIt->idx = at;
-    rowIt->size = len;
     rowIt->contents = str.substr(startIndex, len);
-    rowIt->rsize = 0;
     rowIt->hl_open_comment = 0;
     updateRowRender(*rowIt);
 
@@ -369,30 +366,26 @@ void Model::rowInsertChar(int c) {
     int at = cx;
 
     // TODO: Is this check even necessary??
-    if (at < 0 || at > curRow->size)
-        at = curRow->size;
+    if (at < 0 || at > curRow->contents.size())
+        at = curRow->contents.size();
 
     curRow->contents.insert(at, 1, c);
-    curRow->size++;
 
     updateRowRender(*curRow);
     dirty++; 
 }
 
 void Model::insertNewline() {
+    //TODO: Bounds checking
     if (cx == 0)
     {
         insertRow(cy, "", 0, 0);
     }
     else
     {
-        auto curRow = rowList.begin() + cy;
-        auto tempStr = curRow->contents;
-        auto tempSize = curRow->size - cx;
-        curRow->size = cx;
-        curRow->contents.resize(curRow->size);
-        updateRowRender(*curRow);
-        insertRow(cy + 1, tempStr, cx, tempSize);
+        insertRow(cy + 1, this->curRow().contents, cx, rowContentLength() - cx);
+        this->curRowContents().resize(cx);
+        updateRowRender(this->curRow());
     }
     cy++;
     cx = 0;        
@@ -411,11 +404,10 @@ void Model::deleteChar()
     // Deleting a character inside the row
     if (cx > 0)
     {
-        if(cx > rowList[cy].size) {
+        if(cx > rowContentLength()) {
             return;
         }
-        rowList[cy].contents.erase(cx - 1, 1);
-        rowList[cy].size--;
+        this->curRowContents().erase(cx - 1, 1);
         updateRowRender(rowList[cy]);
         dirty++;
         cx--;
@@ -423,9 +415,8 @@ void Model::deleteChar()
     // Deleting the row's start to shift the row up
     else
     {
-        cx = rowList[cy - 1].size;
+        cx = rowList[cy - 1].contents.size();
         rowList[cy - 1].contents += rowList[cy].contents;
-        rowList[cy - 1].size += rowList[cy].size;
         updateRowRender(rowList[cy - 1]);
         dirty++;
         deleteRow(cy);
@@ -455,7 +446,7 @@ int Model::rowRxToCx(const Model::erow& row, int rx)
 {
     int cur_rx = 0;
     int cx;
-    for (cx = 0; cx < row.size; cx++)
+    for (cx = 0; cx < row.contents.size(); cx++)
     {
         if (row.contents[cx] == '\t')
             cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);

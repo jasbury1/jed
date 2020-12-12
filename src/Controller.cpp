@@ -51,7 +51,7 @@ void Controller::processInput()
 
     case END_KEY:
         if (model->cy < model->numRows())
-            model->cx = model->rowList[model->cy].size;
+            model->cx = model->rowContentLength(model->cy);
         break;
 
     case CTRL_KEY('f'):
@@ -197,7 +197,7 @@ void Controller::scroll()
     model->rx = 0;
     if (model->cy < model->numRows())
     {
-        model->rx = model->rowCxToRx(model->rowList[model->cy], model->cx);
+        model->rx = model->rowCxToRx(model->curRow(), model->cx);
     }
 
     if (model->cy < model->rowoff)
@@ -220,7 +220,8 @@ void Controller::scroll()
 
 void Controller::moveCursor(int key)
 {
-    Model::erow *row = (model->cy >= model->numRows()) ? NULL : &model->rowList[model->cy];
+    //TODO: Remove use of erow later
+    const Model::erow *row = (model->cy >= model->numRows()) ? NULL : &model->curRow();
 
     switch (key)
     {
@@ -232,15 +233,15 @@ void Controller::moveCursor(int key)
         else if (model->cy > 0)
         {
             model->cy--;
-            model->cx = model->rowList[model->cy].size;
+            model->cx = model->rowContentLength();
         }
         break;
     case ARROW_RIGHT:
-        if (row && model->cx < row->size)
+        if (row && model->cx < model->rowContentLength())
         {
             model->cx++;
         }
-        else if (row && model->cx == row->size)
+        else if (row && model->cx == model->rowContentLength())
         {
             model->cy++;
             model->cx = 0;
@@ -260,8 +261,11 @@ void Controller::moveCursor(int key)
         break;
     }
 
-    row = (model->cy >= model->numRows()) ? NULL : &model->rowList[model->cy];
-    int rowlen = row ? row->size : 0;
+    auto rowlen = 0;
+    if(model->cy < model->numRows()){
+        rowlen = model->rowContentLength();
+    }
+
     if (model->cx > rowlen)
     {
         model->cx = rowlen;
@@ -346,8 +350,8 @@ void Controller::saveFile()
 
     if(saveFile.is_open()) {
         for(int i = 0; i < model->numRows(); ++i) {
-            saveFile << model->rowList[i].contents << "\n";
-            len += model->rowList[i].contents.length() + 1;
+            saveFile << model->rowContents(i) << "\n";
+            len += model->rowContentLength(i) + 1;
         }
         model->dirty = 0;
         model->setStatusMessage("%d bytes written to disk", len);
