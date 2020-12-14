@@ -1,4 +1,5 @@
-#include <Model.h>
+#include "Model.h"
+#include "CSyntax.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -10,26 +11,13 @@
 #include <string>
 #include <iostream>
 
-char *Model::C_HL_extensions[] = {".c", ".h", ".cpp", NULL};
-char *Model::C_HL_keywords[] = {
-    "switch", "if", "while", "for", "break", "continue", "return", "else",
-    "struct", "union", "typedef", "static", "enum", "class", "case",
 
-    "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|",
-    "void|", NULL};
-struct Model::editorSyntax Model::HLDB[] = {
-    {"c",
-     C_HL_extensions,
-     C_HL_keywords,
-     "//", "/*", "*/",
-     HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS},
-};
-
-#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
-
-Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), dirty(0), statusmsg_time(0), syntax(NULL)
+Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), dirty(0), statusmsg_time(0), syntax{nullptr}
 {
     statusmsg[0] = '\0';
+
+    //TODO: Replace this later!!
+    syntax = std::make_unique<CSyntax>();
 
     if (getWindowSize(&screenrows, &screencols) == -1)
     {
@@ -73,179 +61,23 @@ void Model::openFile(const std::string &inputFile)
 
 void Model::selectSyntaxHighlight()
 {
-    syntax = NULL;
     if (filename.empty())
         return;
     auto pos = filename.rfind(".");
     if(pos == std::string::npos) {
         return;
     }
-
     std::string ext = filename.substr(pos);
 
-    for (unsigned int j = 0; j < HLDB_ENTRIES; j++)
-    {
-        struct Model::editorSyntax *s = &HLDB[j];
-        unsigned int i = 0;
-        while (s->filematch[i])
-        {
-            int is_ext = (s->filematch[i][0] == '.');
-            if ((is_ext && ext.c_str() && !strcmp(ext.c_str(), s->filematch[i])) ||
-                (!is_ext && strstr(filename.c_str(), s->filematch[i])))
-            {
-                syntax = s;
+    // Check to see if the extension has changed
+    if(ext != extension) {
+        extension = ext;
 
-                int filerow;
-                for (filerow = 0; filerow < numRows(); filerow++)
-                {
-                    updateSyntax(rowList[filerow]);
-                }
-
-                return;
-            }
-            i++;
+        // Redo all syntax highlighting
+        for(int i = 0; i < rowList.size(); ++i) {
+            syntax->updateSyntaxHighlight(rowList, i);
         }
     }
-}
-
-void Model::updateSyntax(Model::erow& curRow)
-{
-    curRow.highlight = std::vector<unsigned char>(curRow.render.size(), HL_NORMAL);
-
-    if (syntax == NULL)
-        return;
-
-    char **keywords = syntax->keywords;
-
-    char *scs = syntax->singleline_comment_start;
-    char *mcs = syntax->multiline_comment_start;
-    char *mce = syntax->multiline_comment_end;
-
-    int scs_len = scs ? strlen(scs) : 0;
-    int mcs_len = mcs ? strlen(mcs) : 0;
-    int mce_len = mce ? strlen(mce) : 0;
-
-    int prev_sep = 1;
-    int in_string = 0;
-    int in_comment = (curRow.idx > 0 && rowList[curRow.idx - 1].hl_open_comment);
-
-    int i = 0;
-    while (i < curRow.highlight.size())
-    {
-        char c = curRow.render[i];
-        unsigned char prev_hl = (i > 0) ? curRow.highlight[i - 1] : HL_NORMAL;
-
-        if (scs_len && !in_string && !in_comment)
-        {
-            if (!strncmp(&curRow.render[i], scs, scs_len))
-            {
-                std::fill_n(curRow.highlight.begin() + i, curRow.highlight.size() - i, HL_COMMENT);
-                break;
-            }
-        }
-
-        if (mcs_len && mce_len && !in_string)
-        {
-            if (in_comment)
-            {
-                curRow.highlight[i] = HL_MLCOMMENT;
-                if (!strncmp(&curRow.render[i], mce, mce_len))
-                {
-                    std::fill_n(curRow.highlight.begin() + i, mce_len, HL_MLCOMMENT);
-                    i += mce_len;
-                    in_comment = 0;
-                    prev_sep = 1;
-                    continue;
-                }
-                else
-                {
-                    i++;
-                    continue;
-                }
-            }
-            else if (!strncmp(&curRow.render[i], mcs, mcs_len))
-            {
-                std::fill_n(curRow.highlight.begin() + i, mcs_len, HL_MLCOMMENT);
-                i += mcs_len;
-                in_comment = 1;
-                continue;
-            }
-        }
-
-        if (syntax->flags & HL_HIGHLIGHT_STRINGS)
-        {
-            if (in_string)
-            {
-                curRow.highlight[i] = HL_STRING;
-                if (c == '\\' && i + 1 < curRow.render.size())
-                {
-                    curRow.highlight[i + 1] = HL_STRING;
-                    i += 2;
-                    continue;
-                }
-                if (c == in_string)
-                    in_string = 0;
-                i++;
-                prev_sep = 1;
-                continue;
-            }
-            else
-            {
-                if (c == '"' || c == '\'')
-                {
-                    in_string = c;
-                    curRow.highlight[i] = HL_STRING;
-                    i++;
-                    continue;
-                }
-            }
-        }
-
-        if (syntax->flags & HL_HIGHLIGHT_NUMBERS)
-        {
-            if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) ||
-                (c == '.' && prev_hl == HL_NUMBER))
-            {
-                curRow.highlight[i] = HL_NUMBER;
-                i++;
-                prev_sep = 0;
-                continue;
-            }
-        }
-
-        if (prev_sep)
-        {
-            int j;
-            for (j = 0; keywords[j]; j++)
-            {
-                int klen = strlen(keywords[j]);
-                int kw2 = keywords[j][klen - 1] == '|';
-                if (kw2)
-                    klen--;
-
-                if (!strncmp(&curRow.render[i], keywords[j], klen) &&
-                    isSeparator(curRow.render[i + klen]))
-                {
-                    std::fill_n(curRow.highlight.begin() + i, klen, kw2 ? HL_KEYWORD2 : HL_KEYWORD1);
-                    i += klen;
-                    break;
-                }
-            }
-            if (keywords[j] != NULL)
-            {
-                prev_sep = 0;
-                continue;
-            }
-        }
-
-        prev_sep = isSeparator(c);
-        i++;
-    }
-
-    int changed = (curRow.hl_open_comment != in_comment);
-    curRow.hl_open_comment = in_comment;
-    if (changed && curRow.idx + 1 < numRows())
-        updateSyntax(rowList[curRow.idx + 1]);
 }
 
 int Model::getWindowSize(int *rows, int *cols)
@@ -316,7 +148,7 @@ void Model::updateRowRender(Model::erow& newRow)
             newRow.render += c;
         }
     }
-    updateSyntax(newRow);
+    syntax->updateSyntaxHighlight(rowList, newRow.idx);
 }
 
 void Model::insertRow(int at, const std::string str, int startIndex, std::size_t len)
@@ -327,14 +159,16 @@ void Model::insertRow(int at, const std::string str, int startIndex, std::size_t
     //TODO: Bounds check for len and startIndex
 
     // Increase the internal index number for each row
-    for(int i = at + 1; i < numRows(); ++i) {
+    for(int i = at; i < numRows(); ++i) {
         rowList[i].idx++;
     }
     Model::erow newRow;
     auto rowIt = rowList.insert(rowList.begin() + at, newRow);
     rowIt->idx = at;
     rowIt->contents = str.substr(startIndex, len);
-    rowIt->hl_open_comment = 0;
+    rowIt->commentOpen = false;
+    rowIt->render = "";
+    rowIt->highlight = {};
     updateRowRender(*rowIt);
 
     dirty++;
@@ -399,8 +233,6 @@ void Model::deleteChar()
     if (cx == 0 && cy == 0)
         return;
 
-    //auto curRow = rowList[cy];
-
     // Deleting a character inside the row
     if (cx > 0)
     {
@@ -422,11 +254,6 @@ void Model::deleteChar()
         deleteRow(cy);
         cy--;
     } 
-}
-
-int Model::isSeparator(int c)
-{
-    return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
 }
 
 int Model::rowCxToRx(const Model::erow& row, int cx)

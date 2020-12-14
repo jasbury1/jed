@@ -1,14 +1,17 @@
-#include <TerminalView.h>
-#include <Model.h>
+#include "TerminalView.h"
+#include "Model.h"
 #include <unistd.h>
 #include <string>
+#include "Syntax.h"
 
-TerminalView::TerminalView(std::shared_ptr<const Model> model) : model(model){
+TerminalView::TerminalView(std::shared_ptr<const Model> model) : model(model)
+{
     enableRawMode();
 }
 
-TerminalView::~TerminalView(){
-     disableRawMode();
+TerminalView::~TerminalView()
+{
+    disableRawMode();
 }
 
 void TerminalView::drawView()
@@ -32,7 +35,7 @@ void TerminalView::drawView()
     write(STDOUT_FILENO, displayStr.c_str(), displayStr.length());
 }
 
-void TerminalView::editorDrawRows(std::string& displayStr)
+void TerminalView::editorDrawRows(std::string &displayStr)
 {
     for (int r = 0; r < model->screenrows; r++)
     {
@@ -71,18 +74,23 @@ void TerminalView::editorDrawRows(std::string& displayStr)
                 len = 0;
             if (len > model->screencols)
                 len = model->screencols;
-            //char *c = &model->rowList[filerow].render.c_str()[model->coloff];
             int current_color = -1;
             for (int j = 0; j < len; j++)
             {
+                if(j + model->coloff >= model->rowHighlight(rowNum).size()) {
+                    printf("ERRRRRRR\n %d \n %d \n", model->rowHighlight(rowNum).size(), model->rowRender(rowNum).size());
+                }
                 if (iscntrl(model->rowRender(rowNum)[model->coloff + j]))
                 {
-                    char sym = '?';
-                    if (model->rowRender(rowNum)[model->coloff + j] <= 26) {
-                        char sym = '@' + model->rowRender(rowNum)[model->coloff + j];
-                    }
                     displayStr.append("\x1b[7m", 4);
-                    displayStr += sym;
+                    if (model->rowRender(rowNum)[model->coloff + j] <= 26)
+                    {
+                        displayStr += '@' + model->rowRender(rowNum)[model->coloff + j];
+                    }
+                    else
+                    {
+                        displayStr += '?';
+                    }
                     displayStr.append("\x1b[m", 3);
                     if (current_color != -1)
                     {
@@ -91,7 +99,7 @@ void TerminalView::editorDrawRows(std::string& displayStr)
                         displayStr.append(buf, clen);
                     }
                 }
-                else if (model->rowHighlight(rowNum)[j + model->coloff] == Model::HL_NORMAL)
+                else if (model->rowHighlight(rowNum)[j + model->coloff] == Syntax::HL_NORMAL)
                 {
                     if (current_color != -1)
                     {
@@ -121,15 +129,15 @@ void TerminalView::editorDrawRows(std::string& displayStr)
     }
 }
 
-void TerminalView::editorDrawStatusBar(std::string& displayStr)
+void TerminalView::editorDrawStatusBar(std::string &displayStr)
 {
     displayStr.append("\x1b[7m", 4);
     char status[80], rstatus[80];
     int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-                       model->filename.empty() ? model->filename.c_str() : "[No Name]", model->numRows(),
+                       !model->filename.empty() ? model->filename.c_str() : "[No Name]", model->numRows(),
                        model->dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
-                        model->syntax ? model->syntax->filetype : "no ft", model->cy + 1, model->numRows());
+                        model->syntax != nullptr ? model->syntax->fileType().c_str() : "no ft", model->cy + 1, model->numRows());
     if (len > model->screencols)
         len = model->screencols;
     displayStr.append(status, len);
@@ -150,7 +158,7 @@ void TerminalView::editorDrawStatusBar(std::string& displayStr)
     displayStr.append("\r\n", 2);
 }
 
-void TerminalView::editorDrawMessageBar(std::string& displayStr)
+void TerminalView::editorDrawMessageBar(std::string &displayStr)
 {
     displayStr.append("\x1b[K", 3);
     int msglen = strlen(model->statusmsg);
@@ -164,18 +172,18 @@ int TerminalView::editorSyntaxToColor(int hl)
 {
     switch (hl)
     {
-    case Model::HL_COMMENT:
-    case Model::HL_MLCOMMENT:
+    case Syntax::HL_COMMENT:
+    case Syntax::HL_MLCOMMENT:
         return 36;
-    case Model::HL_KEYWORD1:
+    case Syntax::HL_KEYWORD1:
         return 33;
-    case Model::HL_KEYWORD2:
+    case Syntax::HL_KEYWORD2:
         return 32;
-    case Model::HL_STRING:
+    case Syntax::HL_STRING:
         return 35;
-    case Model::HL_NUMBER:
+    case Syntax::HL_NUMBER:
         return 31;
-    case Model::HL_MATCH:
+    case Syntax::HL_MATCH:
         return 34;
     default:
         return 37;
@@ -184,14 +192,16 @@ int TerminalView::editorSyntaxToColor(int hl)
 
 void TerminalView::disableRawMode()
 {
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &origTermios) == -1){
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &origTermios) == -1)
+    {
         // TODO: DIE
     }
 }
 
 void TerminalView::enableRawMode()
 {
-    if (tcgetattr(STDIN_FILENO, &origTermios) == -1){
+    if (tcgetattr(STDIN_FILENO, &origTermios) == -1)
+    {
         // TODO DIE
     }
 
@@ -203,9 +213,8 @@ void TerminalView::enableRawMode()
     raw.c_cc[VMIN] = 0;
     raw.c_cc[VTIME] = 1;
 
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1){
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+    {
         // TODO DIE
     }
 }
-
-

@@ -13,21 +13,11 @@
 #define HL_HIGHLIGHT_NUMBERS (1 << 0)
 #define HL_HIGHLIGHT_STRINGS (1 << 1)
 
+class Syntax;
 
 class Model
 {
 public:
-    enum editorHighlight
-    {
-        HL_NORMAL = 0,
-        HL_COMMENT,
-        HL_MLCOMMENT,
-        HL_KEYWORD1,
-        HL_KEYWORD2,
-        HL_STRING,
-        HL_NUMBER,
-        HL_MATCH
-    };
 
     typedef struct erow
     {
@@ -35,9 +25,10 @@ public:
         std::string contents;
         std::string render;
         std::vector<unsigned char> highlight;
-        int hl_open_comment;
+        bool commentOpen;
     } erow;
 
+    /*
     struct editorSyntax
     {
         char *filetype;
@@ -52,7 +43,7 @@ public:
     static char *C_HL_extensions[4];
     static char *C_HL_keywords[24];
     static struct editorSyntax HLDB[1];
-
+    */
     int cx, cy;
     // Index into render field. Needed for positioning based on
     int rx;
@@ -61,11 +52,11 @@ public:
     int screenrows;
     int screencols;
     int dirty;
-    //char *filename;
     std::string filename;
+    std::string extension;
     char statusmsg[80];
     time_t statusmsg_time;
-    struct editorSyntax *syntax;
+    std::unique_ptr<const Syntax> syntax;
 
     Model();
     ~Model();
@@ -77,6 +68,7 @@ public:
     void insertChar(int c);
     void deleteChar();
     void insertNewline();
+
 
     // Getters for various length values
     int numRows() const {return rowList.size();}
@@ -114,8 +106,6 @@ private:
     void deleteRow(int at);
     void updateRowRender(erow& newRow);
     void rowInsertChar(int c);
-    int isSeparator(int c);
-    void updateSyntax(erow& curRow);
     int getWindowSize(int *rows, int *cols);
     int getCursorPosition(int *rows, int *cols);
 
