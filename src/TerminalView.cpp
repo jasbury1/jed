@@ -1,7 +1,9 @@
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <string>
+
 #include "TerminalView.h"
 #include "Model.h"
-#include <unistd.h>
-#include <string>
 #include "Syntax.h"
 
 TerminalView::TerminalView(std::shared_ptr<const Model> model) : model(model)
@@ -16,6 +18,11 @@ TerminalView::~TerminalView()
 
 void TerminalView::drawView()
 {
+    if (getWindowSize(&screenrows, &screencols) == -1)
+    {
+        /* TODO */
+    }
+    screenrows -= 2;
     std::string displayStr = "";
 
     displayStr.append("\x1b[?25l", 6);
@@ -37,20 +44,20 @@ void TerminalView::drawView()
 
 void TerminalView::editorDrawRows(std::string &displayStr)
 {
-    for (int r = 0; r < model->screenrows; r++)
+    for (int r = 0; r < screenrows; r++)
     {
         auto rowNum = r + model->rowoff;
         if (rowNum >= model->numRows())
         {
             // File is empty. Draw a temporary welcome message
-            if (model->numRows() == 0 && r == model->screenrows / 3)
+            if (model->numRows() == 0 && r == screenrows / 3)
             {
                 char welcome[80];
                 int welcomelen = snprintf(welcome, sizeof(welcome),
                                           "Kilo editor -- version %s", KILO_VERSION);
-                if (welcomelen > model->screencols)
-                    welcomelen = model->screencols;
-                int padding = (model->screencols - welcomelen) / 2;
+                if (welcomelen > screencols)
+                    welcomelen = screencols;
+                int padding = (screencols - welcomelen) / 2;
                 if (padding)
                 {
                     displayStr.append("~", 1);
@@ -72,8 +79,8 @@ void TerminalView::editorDrawRows(std::string &displayStr)
             auto len = model->rowRenderLength(rowNum) - model->coloff;
             if (len < 0)
                 len = 0;
-            if (len > model->screencols)
-                len = model->screencols;
+            if (len > screencols)
+                len = screencols;
             int current_color = -1;
             for (int j = 0; j < len; j++)
             {
@@ -135,12 +142,12 @@ void TerminalView::editorDrawStatusBar(std::string &displayStr)
                        model->dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
                         model->syntax != nullptr ? model->syntax->fileType().c_str() : "no ft", model->cy + 1, model->numRows());
-    if (len > model->screencols)
-        len = model->screencols;
+    if (len > screencols)
+        len = screencols;
     displayStr.append(status, len);
-    while (len < model->screencols)
+    while (len < screencols)
     {
-        if (model->screencols - len == rlen)
+        if (screencols - len == rlen)
         {
             displayStr.append(rstatus, rlen);
             break;
@@ -159,8 +166,8 @@ void TerminalView::editorDrawMessageBar(std::string &displayStr)
 {
     displayStr.append("\x1b[K", 3);
     int msglen = strlen(model->statusmsg);
-    if (msglen > model->screencols)
-        msglen = model->screencols;
+    if (msglen > screencols)
+        msglen = screencols;
     if (msglen && time(NULL) - model->statusmsg_time < 5)
         displayStr.append(model->statusmsg, msglen);
 }
@@ -185,6 +192,50 @@ int TerminalView::editorSyntaxToColor(int hl)
     default:
         return 37;
     }
+}
+
+int TerminalView::getWindowSize(int *rows, int *cols)
+{
+    struct winsize ws;
+
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0)
+    {
+        if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
+            return -1;
+        return getCursorPosition(rows, cols);
+    }
+    else
+    {
+        *cols = ws.ws_col;
+        *rows = ws.ws_row;
+        return 0;
+    }
+}
+
+int getCursorPosition(int *rows, int *cols)
+{
+    char buf[32];
+    unsigned int i = 0;
+
+    if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
+        return -1;
+
+    while (i < sizeof(buf) - 1)
+    {
+        if (read(STDIN_FILENO, &buf[i], 1) != 1)
+            break;
+        if (buf[i] == 'R')
+            break;
+        i++;
+    }
+    buf[i] = '\0';
+
+    if (buf[0] != '\x1b' || buf[1] != '[')
+        return -1;
+    if (sscanf(&buf[2], "%d;%d", rows, cols) != 2)
+        return -1;
+
+    return 0;
 }
 
 void TerminalView::disableRawMode()

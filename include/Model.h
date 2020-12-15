@@ -49,8 +49,6 @@ public:
     int rx;
     int rowoff;
     int coloff;
-    int screenrows;
-    int screencols;
     int dirty;
     std::string filename;
     std::string extension;
@@ -106,7 +104,6 @@ private:
     void deleteRow(int at);
     void updateRowRender(erow& newRow);
     void rowInsertChar(int c);
-    int getWindowSize(int *rows, int *cols);
     int getCursorPosition(int *rows, int *cols);
 
 };

@@ -14,7 +14,7 @@ CSyntax::~CSyntax()
 
 bool isSeparator(int c)
 {
-    return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
+    return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[]{};", c) != NULL;
 }
 
 void CSyntax::updateSyntaxHighlight(std::vector<Model::erow> &rowList, int rowIndex) const

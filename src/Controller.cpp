@@ -75,12 +75,12 @@ void Controller::processInput()
         }
         else if (c == PAGE_DOWN)
         {
-            model->cy = model->rowoff + model->screenrows - 1;
+            model->cy = model->rowoff + view->getScreenRows() - 1;
             if (model->cy > model->numRows())
                 model->cy = model->numRows();
         }
 
-        int times = model->screenrows;
+        int times = view->getScreenRows();
         while (times--)
             moveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
     }
@@ -204,17 +204,17 @@ void Controller::scroll()
     {
         model->rowoff = model->cy;
     }
-    if (model->cy >= model->rowoff + model->screenrows)
+    if (model->cy >= model->rowoff + view->getScreenRows())
     {
-        model->rowoff = model->cy - model->screenrows + 1;
+        model->rowoff = model->cy - view->getScreenRows() + 1;
     }
     if (model->rx < model->coloff)
     {
         model->coloff = model->rx;
     }
-    if (model->rx >= model->coloff + model->screencols)
+    if (model->rx >= model->coloff + view->getScreenCols())
     {
-        model->coloff = model->rx - model->screencols + 1;
+        model->coloff = model->rx - view->getScreenCols() + 1;
     }
 }
 
