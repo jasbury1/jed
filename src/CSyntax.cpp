@@ -24,7 +24,6 @@ void CSyntax::updateSyntaxHighlight(std::vector<Model::erow> &rowList, int rowIn
         return;
     }
     auto &curRow = rowList[rowIndex];
-    curRow.highlight = std::vector<unsigned char>(curRow.render.size(), HL_NORMAL);
 
     // Keeps track of if the previous character was a separator
     bool prevSep = true;

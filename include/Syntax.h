@@ -19,7 +19,10 @@ public:
         HL_MATCH
     };
 
-    virtual ~Syntax(){};
+    Syntax(){}
+    virtual ~Syntax(){}
+
+    static std::unique_ptr<Syntax> getSyntax(std::string extension);
 
     virtual std::string fileType() const = 0;
     virtual void updateSyntaxHighlight(std::vector<Model::erow> &rowList, int rowIndex) const = 0;
@@ -27,5 +30,6 @@ public:
     virtual bool highlightNums() const = 0;
     
 };
+
 
 #endif //SYNTAX_H

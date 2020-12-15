@@ -1,5 +1,3 @@
-#include "Model.h"
-#include "CSyntax.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -11,13 +9,13 @@
 #include <string>
 #include <iostream>
 
+#include "Model.h"
+#include "Syntax.h"
+
 
 Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), dirty(0), statusmsg_time(0), syntax{nullptr}
 {
     statusmsg[0] = '\0';
-
-    //TODO: Replace this later!!
-    syntax = std::make_unique<CSyntax>();
 
     if (getWindowSize(&screenrows, &screencols) == -1)
     {
@@ -72,8 +70,13 @@ void Model::selectSyntaxHighlight()
     // Check to see if the extension has changed
     if(ext != extension) {
         extension = ext;
+        syntax = Syntax::getSyntax(ext);
 
-        // Redo all syntax highlighting
+        if(syntax == nullptr) {
+            return;
+        }
+
+        // Redo all syntax highlighting based on new extension
         for(int i = 0; i < rowList.size(); ++i) {
             syntax->updateSyntaxHighlight(rowList, i);
         }
@@ -148,7 +151,10 @@ void Model::updateRowRender(Model::erow& newRow)
             newRow.render += c;
         }
     }
-    syntax->updateSyntaxHighlight(rowList, newRow.idx);
+    newRow.highlight = std::vector<unsigned char>(newRow.render.size(), Syntax::HL_NORMAL);
+    if(syntax != nullptr){
+        syntax->updateSyntaxHighlight(rowList, newRow.idx);
+    }
 }
 
 void Model::insertRow(int at, const std::string str, int startIndex, std::size_t len)

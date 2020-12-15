@@ -77,9 +77,6 @@ void TerminalView::editorDrawRows(std::string &displayStr)
             int current_color = -1;
             for (int j = 0; j < len; j++)
             {
-                if(j + model->coloff >= model->rowHighlight(rowNum).size()) {
-                    printf("ERRRRRRR\n %d \n %d \n", model->rowHighlight(rowNum).size(), model->rowRender(rowNum).size());
-                }
                 if (iscntrl(model->rowRender(rowNum)[model->coloff + j]))
                 {
                     displayStr.append("\x1b[7m", 4);
