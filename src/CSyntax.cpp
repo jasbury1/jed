@@ -24,6 +24,7 @@ void CSyntax::updateSyntaxHighlight(std::vector<Model::erow> &rowList, int rowIn
         return;
     }
     auto &curRow = rowList[rowIndex];
+    std::fill(curRow.highlight.begin(), curRow.highlight.end(), HL_NORMAL);
 
     // Keeps track of if the previous character was a separator
     bool prevSep = true;
@@ -39,6 +40,11 @@ void CSyntax::updateSyntaxHighlight(std::vector<Model::erow> &rowList, int rowIn
     {
         auto c = curRow.render[i];
         auto prevHl = (i > 0) ? curRow.highlight[i - 1] : HL_NORMAL;
+
+        if(i == 0 && !inComment && c == '#') {
+            std::fill_n(curRow.highlight.begin(), curRow.highlight.size(), HL_KEYWORD1);
+            break;
+        }
 
         // If we aren't in a comment or a string, look for a comment start
         if (!singlelineComment.empty() && !inString && !inComment)
