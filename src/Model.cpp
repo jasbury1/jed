@@ -1,8 +1,4 @@
-#include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
-#include <memory.h>
-#include <ctype.h>
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -108,7 +104,7 @@ void Model::updateRowSyntax(std::size_t row){
     }
 }
 
-void Model::insertRow(int at, const std::string str, int startIndex, std::size_t len)
+void Model::insertRow(int at, const std::string& str, int startIndex, std::size_t len)
 {
     if (at < 0 || at > numRows())
         return;

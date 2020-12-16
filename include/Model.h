@@ -92,7 +92,7 @@ private:
     std::unique_ptr<const Syntax> syntax;
     std::vector<erow> rowList;
 
-    void insertRow(int at, const std::string str, int startIndex, std::size_t len);
+    void insertRow(int at, const std::string& str, int startIndex, std::size_t len);
     void deleteRow(int at);
     void updateRowRender(erow &newRow);
     void rowInsertChar(int c);

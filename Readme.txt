@@ -2,6 +2,13 @@ JED (James EDitor)
 
 A (heavily) WIP OO text editor in C++.
 
+
+To Run:
+Run make inside the repo start directory
+builds a 'jed' executable inside /build/apps
+run with no arguments or one argument representing a file name
+ex: "./jed test.cpp"
+
 Originally a spin off of a spin off of the Kilo text editor ported to c++:
 https://viewsourcecodmodel->org/snaptoken/kilo/index.html
 
