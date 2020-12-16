@@ -20,7 +20,7 @@ class Model
 public:
     typedef struct erow
     {
-        int idx;
+        std::size_t idx;
         std::string contents;
         std::string render;
         std::vector<unsigned char> highlight;
@@ -44,7 +44,7 @@ public:
     void setFilename(const std::string &f) { filename = f; }
     const std::string &getFilename() const { return filename; }
 
-    const std::time_t getStatusTime() const { return statusTime; }
+    std::time_t getStatusTime() const { return statusTime; }
 
     void selectSyntaxHighlight();
     int rowCxToRx(const Model::erow &row, int cx);
@@ -61,30 +61,30 @@ public:
     int rowRenderLength() const { return rowList[cy].render.size(); }
 
     // Getters for the contents and render strings of a given row
-    std::string &rowContents(int row) { return rowList[row].contents; }
-    const std::string &rowContents(int row) const { return rowList[row].contents; }
+    std::string &rowContents(std::size_t row) { return rowList[row].contents; }
+    const std::string &rowContents(std::size_t row) const { return rowList[row].contents; }
     std::string &curRowContents() { return rowList[cy].contents; }
     const std::string &curRowContents() const { return rowList[cy].contents; }
 
-    std::string &rowRender(int row) { return rowList[row].render; }
-    const std::string &rowRender(int row) const { return rowList[row].render; }
+    std::string &rowRender(std::size_t row) { return rowList[row].render; }
+    const std::string &rowRender(std::size_t row) const { return rowList[row].render; }
     std::string &curRowRender() { return rowList[cy].render; }
     const std::string &curRowRender() const { return rowList[cy].render; }
 
-    std::vector<unsigned char> &rowHighlight(int row) { return rowList[row].highlight; }
-    const std::vector<unsigned char> &rowHighlight(int row) const { return rowList[row].highlight; }
+    std::vector<unsigned char> &rowHighlight(std::size_t row) { return rowList[row].highlight; }
+    const std::vector<unsigned char> &rowHighlight(std::size_t row) const { return rowList[row].highlight; }
     std::vector<unsigned char> &curRowHighlight() { return rowList[cy].highlight; }
     const std::vector<unsigned char> &curRowHighlight() const { return rowList[cy].highlight; }
 
     // Getters for specific rows
-    const erow &getRow(int row) const { return rowList[row]; }
+    const erow &getRow(std::size_t row) const { return rowList[row]; }
     const erow &curRow() const { return rowList[cy]; }
-    erow &getRow(int row) { return rowList[row]; }
+    erow &getRow(std::size_t row) { return rowList[row]; }
     erow &curRow() { return rowList[cy]; }
 
     const std::unique_ptr<const Syntax> &getSyntax() const { return syntax; }
 
-    void updateRowSyntax(int row);
+    void updateRowSyntax(std::size_t row);
 
 private:
     std::string filename = "";

@@ -68,7 +68,7 @@ void Model::selectSyntaxHighlight()
         }
 
         // Redo all syntax highlighting based on new extension
-        for(int i = 0; i < rowList.size(); ++i) {
+        for(std::size_t i = 0; i < rowList.size(); ++i) {
             syntax->updateSyntaxHighlight(rowList, i);
         }
     }
@@ -99,7 +99,7 @@ void Model::updateRowRender(Model::erow& newRow)
     updateRowSyntax(newRow.idx);
 }
 
-void Model::updateRowSyntax(int row){
+void Model::updateRowSyntax(std::size_t row){
     if(row < 0 || row > rowList.size()) {
         return;
     }
@@ -154,7 +154,7 @@ void Model::insertChar(int c)
 
 void Model::rowInsertChar(int c) {
     auto curRow = rowList.begin() + cy;
-    int at = cx;
+    std::size_t at = cx;
 
     // TODO: Is this check even necessary??
     if (at < 0 || at > curRow->contents.size())
@@ -229,15 +229,15 @@ int Model::rowCxToRx(const Model::erow& row, int cx)
 int Model::rowRxToCx(const Model::erow& row, int rx)
 {
     int cur_rx = 0;
-    int cx;
-    for (cx = 0; cx < row.contents.size(); cx++)
+    std::size_t i = 0;
+    for (; i < row.contents.size(); i++)
     {
-        if (row.contents[cx] == '\t')
+        if (row.contents[i] == '\t')
             cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);
         cur_rx++;
 
         if (cur_rx > rx)
-            return cx;
+            return i;
     }
-    return cx;
+    return i;
 }

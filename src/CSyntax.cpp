@@ -17,7 +17,7 @@ bool isSeparator(int c)
     return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[]{};", c) != NULL;
 }
 
-void CSyntax::updateSyntaxHighlight(std::vector<Model::erow> &rowList, int rowIndex) const
+void CSyntax::updateSyntaxHighlight(std::vector<Model::erow> &rowList, std::size_t rowIndex) const
 {
     if (rowIndex >= rowList.size() || rowIndex < 0)
     {
@@ -35,7 +35,7 @@ void CSyntax::updateSyntaxHighlight(std::vector<Model::erow> &rowList, int rowIn
     // Keeps track of if we are currently in a comment
     bool inComment = (curRow.idx > 0 && rowList[curRow.idx - 1].commentOpen);
 
-    int i = 0;
+    std::size_t i = 0;
     while (i < curRow.highlight.size())
     {
         auto c = curRow.render[i];

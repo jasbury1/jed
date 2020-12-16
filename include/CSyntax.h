@@ -12,7 +12,7 @@ class CSyntax : public Syntax
 public:
     CSyntax();
     ~CSyntax();
-    void updateSyntaxHighlight(std::vector<Model::erow>& rowList, int rowIndex) const;
+    void updateSyntaxHighlight(std::vector<Model::erow>& rowList, std::size_t rowIndex) const;
 
     bool highlightStrings() const {return true;}
     bool highlightNums() const {return true;}

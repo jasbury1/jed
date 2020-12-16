@@ -25,7 +25,7 @@ public:
     static std::unique_ptr<Syntax> getSyntax(std::string extension);
 
     virtual std::string fileType() const = 0;
-    virtual void updateSyntaxHighlight(std::vector<Model::erow> &rowList, int rowIndex) const = 0;
+    virtual void updateSyntaxHighlight(std::vector<Model::erow> &rowList, std::size_t rowIndex) const = 0;
     virtual bool highlightStrings() const = 0;
     virtual bool highlightNums() const = 0;
     

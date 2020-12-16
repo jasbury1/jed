@@ -142,7 +142,7 @@ void TerminalView::editorDrawStatusBar(std::string &displayStr)
                        !model->getFilename().empty() ? model->getFilename().c_str() : "[No Name]", model->numRows(),
                        model->dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
-                        model->getSyntax() != nullptr ? model->getSyntax()->fileType().c_str() : "no ft", model->cy + 1, model->numRows());
+                        model->getSyntax() != nullptr ? model->getSyntax()->fileType().c_str() : "plaintext", model->cy + 1, model->numRows());
     if (len > screencols)
         len = screencols;
     displayStr.append(status, len);
