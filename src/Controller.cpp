@@ -323,10 +323,13 @@ This prevents errors after we erase the file from ruining everything
 */
 void Controller::saveFile()
 {
-    std::function<void(std::string&, int)> saveCallback = {};
+    using namespace std::placeholders;
+    auto cb = std::bind(&Controller::saveCallback, this, _1, _2);
+
+
     if (model->getFilename().empty())
     {
-        model->setFilename(editorPrompt("(ESC to cancel) Save as: ", saveCallback));
+        model->setFilename(editorPrompt("(ESC to cancel) Save as: ", cb));
         if (model->getFilename().empty())
         {
             model->setStatusMsg("Save aborted");
@@ -351,6 +354,27 @@ void Controller::saveFile()
     else {
         //TODO IO ERROR HERE
         model->setStatusMsg("Can't save! IO error: TODO");
+    }
+}
+
+void Controller::editorFind()
+{
+    int saved_cx = model->cx;
+    int saved_cy = model->cy;
+    int saved_coloff = model->coloff;
+    int saved_rowoff = model->rowoff;
+
+    using namespace std::placeholders;
+    auto cb = std::bind(&Controller::editorFindCallback, this, _1, _2);
+    
+    std::string query = editorPrompt("(Use ESC/Arrows/Enter) Search: ", cb);
+
+    if(query.empty())
+    {
+        model->cx = saved_cx;
+        model->cy = saved_cy;
+        model->coloff = saved_coloff;
+        model->rowoff = saved_rowoff;
     }
 }
 
@@ -413,23 +437,7 @@ void Controller::editorFindCallback(std::string& query, int key)
     }
 }
 
-void Controller::editorFind()
-{
-    int saved_cx = model->cx;
-    int saved_cy = model->cy;
-    int saved_coloff = model->coloff;
-    int saved_rowoff = model->rowoff;
-
-    using namespace std::placeholders;
-    auto cb = std::bind(&Controller::editorFindCallback, this, _1, _2);
-    
-    std::string query = editorPrompt("(Use ESC/Arrows/Enter) Search: ", cb);
-
-    if(query.empty())
-    {
-        model->cx = saved_cx;
-        model->cy = saved_cy;
-        model->coloff = saved_coloff;
-        model->rowoff = saved_rowoff;
-    }
+void Controller::saveCallback(std::string& query, int i) {
+    // TODO: No functionality yet
+    return;
 }

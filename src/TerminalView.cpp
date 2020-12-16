@@ -19,7 +19,7 @@ TerminalView::~TerminalView()
 
 void TerminalView::drawView()
 {
-    if (getWindowSize(&screenrows, &screencols) == -1)
+    if (updateWindowSize() == -1)
     {
         /* TODO */
     }
@@ -196,20 +196,22 @@ int TerminalView::editorSyntaxToColor(int hl)
     }
 }
 
-int TerminalView::getWindowSize(int *rows, int *cols)
+int TerminalView::updateWindowSize()
 {
     struct winsize ws;
 
+    /* If we couldn't get the window size, move cursor to bottom right and read position */
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0)
     {
         if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
             return -1;
-        return getCursorPosition(rows, cols);
+        return getCursorPosition(&screenrows, &screencols);
     }
+    /* We were able to read the window size from ioctl */
     else
     {
-        *cols = ws.ws_col;
-        *rows = ws.ws_row;
+        screencols = ws.ws_col;
+        screenrows = ws.ws_row;
         return 0;
     }
 }

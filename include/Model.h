@@ -10,8 +10,6 @@
 
 #define KILO_VERSION "0.0.1"
 #define KILO_TAB_STOP 8
-#define HL_HIGHLIGHT_NUMBERS (1 << 0)
-#define HL_HIGHLIGHT_STRINGS (1 << 1)
 
 class Syntax;
 

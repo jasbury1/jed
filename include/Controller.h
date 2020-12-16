@@ -39,7 +39,9 @@ private:
 
     void saveFile();
     void editorFind();
+
     void editorFindCallback(std::string& query, int key);
+    void saveCallback(std::string& query, int i);
 };
 
 #endif // CONTROLLER_H

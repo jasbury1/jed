@@ -30,7 +30,7 @@ private:
     int editorSyntaxToColor(int hl);
     void disableRawMode();
     void enableRawMode();
-    int getWindowSize(int *rows, int *cols);
+    int updateWindowSize();
 };
 
 int getCursorPosition(int *rows, int *cols);
