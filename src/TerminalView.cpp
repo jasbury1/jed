@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <string>
+#include <iostream>
 
 #include "TerminalView.h"
 #include "Model.h"
@@ -138,10 +139,10 @@ void TerminalView::editorDrawStatusBar(std::string &displayStr)
     displayStr.append("\x1b[7m", 4);
     char status[80], rstatus[80];
     int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-                       !model->filename.empty() ? model->filename.c_str() : "[No Name]", model->numRows(),
+                       !model->getFilename().empty() ? model->getFilename().c_str() : "[No Name]", model->numRows(),
                        model->dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
-                        model->syntax != nullptr ? model->syntax->fileType().c_str() : "no ft", model->cy + 1, model->numRows());
+                        model->getSyntax() != nullptr ? model->getSyntax()->fileType().c_str() : "no ft", model->cy + 1, model->numRows());
     if (len > screencols)
         len = screencols;
     displayStr.append(status, len);
@@ -165,11 +166,12 @@ void TerminalView::editorDrawStatusBar(std::string &displayStr)
 void TerminalView::editorDrawMessageBar(std::string &displayStr)
 {
     displayStr.append("\x1b[K", 3);
-    int msglen = strlen(model->statusmsg);
+    int msglen = model->getStatusMsg().size();
     if (msglen > screencols)
         msglen = screencols;
-    if (msglen && time(NULL) - model->statusmsg_time < 5)
-        displayStr.append(model->statusmsg, msglen);
+    std::string status = model->getStatusMsg();
+    status.resize(msglen);
+    displayStr += status;
 }
 
 int TerminalView::editorSyntaxToColor(int hl)

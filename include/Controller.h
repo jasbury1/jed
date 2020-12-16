@@ -35,13 +35,11 @@ private:
     int readKey();
     void moveCursor(int key);
     void scroll();
-    char *editorPrompt(char *prompt, void (*callback)(char *, int));
-    //void editorSave();
+    std::string editorPrompt(const std::string& prompt, std::function<void(std::string&, int)> callback);
+
     void saveFile();
     void editorFind();
-    void editorFindCallback(char *query, int key);
-    //char *editorRowsToString(int *buflen);
-
+    void editorFindCallback(std::string& query, int key);
 };
 
 #endif // CONTROLLER_H

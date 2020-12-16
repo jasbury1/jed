@@ -1,7 +1,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include <time.h>
+#include <ctime>
 #include <termios.h>
 #include <string>
 #include <vector>
@@ -28,38 +28,25 @@ public:
         bool commentOpen;
     } erow;
 
-    /*
-    struct editorSyntax
-    {
-        char *filetype;
-        char **filematch;
-        char **keywords;
-        char *singleline_comment_start;
-        char *multiline_comment_start;
-        char *multiline_comment_end;
-        int flags;
-    };
-
-    static char *C_HL_extensions[4];
-    static char *C_HL_keywords[24];
-    static struct editorSyntax HLDB[1];
-    */
+    // X and Y values for contents
     int cx, cy;
-    // Index into render field. Needed for positioning based on
+    // X index coordinate into render field
     int rx;
     int rowoff;
     int coloff;
     int dirty;
-    std::string filename;
-    std::string extension;
-    char statusmsg[80];
-    time_t statusmsg_time;
-    std::unique_ptr<const Syntax> syntax;
 
     Model();
     ~Model();
     void openFile(const std::string& inputFile);
-    void setStatusMessage(const char *fmt, ...);
+
+    void setStatusMsg(const std::string& msg);
+    const std::string& getStatusMsg() const {return statusMsg;}
+    void setFilename(const std::string& f) {filename = f;}
+    const std::string& getFilename() const {return filename;}
+
+    const std::time_t getStatusTime() const {return statusTime;}
+
     void selectSyntaxHighlight();
     int rowCxToRx(const Model::erow& row, int cx);
     int rowRxToCx(const Model::erow& row, int rx);
@@ -97,7 +84,14 @@ public:
     erow& getRow(int row) {return rowList[row];}
     erow& curRow() {return rowList[cy];}
 
+    const std::unique_ptr<const Syntax>& getSyntax() const {return syntax;}
+
 private:
+    std::string filename = "";
+    std::string extension = "";
+    std::string statusMsg = "";
+    std::time_t statusTime;
+    std::unique_ptr<const Syntax> syntax;
     std::vector<erow> rowList;
 
     void insertRow(int at, const std::string str, int startIndex, std::size_t len);

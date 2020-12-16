@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <memory.h>
 #include <ctype.h>
-#include <stdarg.h>
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -12,10 +11,8 @@
 #include "Syntax.h"
 
 
-Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), dirty(0), statusmsg_time(0), syntax{nullptr}
+Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), dirty(0), statusTime{std::time(nullptr)}, syntax{nullptr}
 {
-    statusmsg[0] = '\0';
-
 }
 
 Model::~Model()
@@ -77,13 +74,10 @@ void Model::selectSyntaxHighlight()
     }
 }
 
-void Model::setStatusMessage(const char *fmt, ...)
+void Model::setStatusMsg(const std::string& msg)
 {
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(statusmsg, sizeof(statusmsg), fmt, ap);
-    va_end(ap);
-    statusmsg_time = time(NULL);
+    statusMsg = msg;
+    statusTime = std::time(nullptr);
 }
 
 void Model::updateRowRender(Model::erow& newRow)

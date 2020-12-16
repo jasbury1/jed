@@ -42,8 +42,7 @@ int main(int argc, char *argv[])
         model->openFile(filename);
     }
 
-    model->setStatusMessage(
-        "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
+    model->setStatusMsg("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
     while (1)
     {

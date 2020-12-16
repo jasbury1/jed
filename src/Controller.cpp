@@ -6,6 +6,10 @@
 #include <fcntl.h>
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <functional>
+
+#include "Syntax.h"
 
 Controller::Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view) : model(model), view(view)
 {
@@ -30,9 +34,8 @@ void Controller::processInput()
     case CTRL_KEY('q'):
         if (model->dirty && quit_times > 0)
         {
-            model->setStatusMessage("WARNING!!! File has unsaved changes. "
-                                         "Press Ctrl-Q %d more times to quit.",
-                                         quit_times);
+            model->setStatusMsg("WARNING!!! File has unsaved changes. "
+                                         "Press Ctrl-Q " + std::to_string(quit_times) + "more times to quit.");
             quit_times--;
             return;
         }
@@ -272,56 +275,43 @@ void Controller::moveCursor(int key)
     }
 }
 
-char *Controller::editorPrompt(char *prompt, void (*callback)(char *, int))
+std::string Controller::editorPrompt(const std::string& prompt, std::function<void(std::string&, int)> callback)
 {
-    size_t bufsize = 128;
-    char *buf = (char *)malloc(bufsize);
+    std::string response = "";
 
-    size_t buflen = 0;
-    buf[0] = '\0';
-
-    while (1)
+    while (true)
     {
-        model->setStatusMessage(prompt, buf);
+        model->setStatusMsg(prompt);
         view->draw();
 
         int c = readKey();
         if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE)
         {
-            if (buflen != 0)
-                buf[--buflen] = '\0';
+            if (!response.empty()){
+                response.pop_back();
+            }
         }
         else if (c == '\x1b')
         {
-            model->setStatusMessage("");
-            if (callback)
-                callback(buf, c);
-            free(buf);
-            return NULL;
+            model->setStatusMsg("");
+            callback(response, c);
+            return "";
         }
         else if (c == '\r')
         {
-            if (buflen != 0)
+            if (!response.empty())
             {
-                model->setStatusMessage("");
-                if (callback)
-                    callback(buf, c);
-                return buf;
+                model->setStatusMsg("");
+                callback(response, c);
+                return response;
             }
         }
         else if (!iscntrl(c) && c < 128)
         {
-            if (buflen == bufsize - 1)
-            {
-                bufsize *= 2;
-                buf = (char *)realloc(buf, bufsize);
-            }
-            buf[buflen++] = c;
-            buf[buflen] = '\0';
+            response += c;
         }
 
-        if (callback)
-            callback(buf, c);
+        callback(response, c);
     }
 }
 
@@ -333,12 +323,13 @@ This prevents errors after we erase the file from ruining everything
 */
 void Controller::saveFile()
 {
-    if (model->filename.empty())
+    std::function<void(std::string&, int)> saveCallback = {};
+    if (model->getFilename().empty())
     {
-        model->filename = editorPrompt("Save as: %s (ESC to cancel)", NULL);
-        if (model->filename.empty())
+        model->setFilename(editorPrompt("Save as: %s (ESC to cancel)", saveCallback));
+        if (model->getFilename().empty())
         {
-            model->setStatusMessage("Save aborted");
+            model->setStatusMsg("Save aborted");
             return;
         }
         model->selectSyntaxHighlight();
@@ -346,7 +337,7 @@ void Controller::saveFile()
 
     int len = 0;
 
-    std::ofstream saveFile(model->filename, std::ios::out | std::ios::trunc);
+    std::ofstream saveFile(model->getFilename(), std::ios::out | std::ios::trunc);
 
     if(saveFile.is_open()) {
         for(int i = 0; i < model->numRows(); ++i) {
@@ -354,29 +345,31 @@ void Controller::saveFile()
             len += model->rowContentLength(i) + 1;
         }
         model->dirty = 0;
-        model->setStatusMessage("%d bytes written to disk", len);
+        model->setStatusMsg(std::to_string(len) + " bytes written to disk");
         saveFile.close();
     }
     else {
-        model->setStatusMessage("Can't save! IO error: TODO");
+        //TODO IO ERROR HERE
+        model->setStatusMsg("Can't save! IO error: TODO");
     }
 }
 
-void Controller::editorFindCallback(char *query, int key)
+void Controller::editorFindCallback(std::string& query, int key)
 {
-    /*
     static int last_match = -1;
     static int direction = 1;
 
     static int saved_hl_line;
-    static char *saved_hl = NULL;
+    //static char *saved_hl = NULL;
 
+    /*
     if (saved_hl)
     {
         memcpy(model->rowList[saved_hl_line].hl, saved_hl, model->rowList[saved_hl_line].rsize);
         free(saved_hl);
         saved_hl = NULL;
     }
+    */
 
     if (key == '\r' || key == '\x1b')
     {
@@ -410,23 +403,23 @@ void Controller::editorFindCallback(char *query, int key)
         else if (current == model->numRows())
             current = 0;
 
-        Model::erow *row = &model->rowList[current];
-        char *match = strstr(row->render, query);
-        if (match)
+        Model::erow& row = model->getRow(current);        
+        auto pos = model->rowRender(current).find(query);
+        if (pos != std::string::npos)
         {
             last_match = current;
             model->cy = current;
-            model->cx = model->rowRxToCx(*row, match - row->render);
+            model->cx = model->rowRxToCx(row, pos);
             model->rowoff = model->numRows();
 
             saved_hl_line = current;
-            saved_hl = (char *)malloc(row->rsize);
-            memcpy(saved_hl, row->hl, row->rsize);
-            memset(&row->hl[match - row->render], Model::HL_MATCH, strlen(query));
+            //saved_hl = (char *)malloc(row->rsize);
+            //memcpy(saved_hl, row->hl, row->rsize);
+            std::fill_n(row.highlight.begin() + pos, query.size(), Syntax::HL_MATCH);
+
             break;
         }
     }
-    */
 }
 
 void Controller::editorFind()
@@ -435,20 +428,17 @@ void Controller::editorFind()
     int saved_cy = model->cy;
     int saved_coloff = model->coloff;
     int saved_rowoff = model->rowoff;
-    /*
-    char *query = editorPrompt("Search: %s (Use ESC/Arrows/Enter)",
-                               editorFindCallback);
 
-    if (query)
-    {
-        free(query);
-    }
-    else
+    using namespace std::placeholders;
+    auto cb = std::bind(&Controller::editorFindCallback, this, _1, _2);
+    
+    std::string query = editorPrompt("Search: %s (Use ESC/Arrows/Enter)", cb);
+
+    if(!query.empty())
     {
         model->cx = saved_cx;
         model->cy = saved_cy;
         model->coloff = saved_coloff;
         model->rowoff = saved_rowoff;
     }
-    */
 }

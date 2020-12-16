@@ -41,9 +41,8 @@ void CSyntax::updateSyntaxHighlight(std::vector<Model::erow> &rowList, int rowIn
         auto c = curRow.render[i];
         auto prevHl = (i > 0) ? curRow.highlight[i - 1] : HL_NORMAL;
 
-        if(i == 0 && !inComment && c == '#') {
-            std::fill_n(curRow.highlight.begin(), curRow.highlight.size(), HL_KEYWORD1);
-            break;
+        if(!inComment && c == '#') {
+            std::fill_n(curRow.highlight.begin() + i, curRow.highlight.size() - i, HL_KEYWORD1);
         }
 
         // If we aren't in a comment or a string, look for a comment start
