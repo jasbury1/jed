@@ -281,7 +281,7 @@ std::string Controller::editorPrompt(const std::string& prompt, std::function<vo
 
     while (true)
     {
-        model->setStatusMsg(prompt);
+        model->setStatusMsg(prompt + response);
         view->draw();
 
         int c = readKey();
@@ -326,7 +326,7 @@ void Controller::saveFile()
     std::function<void(std::string&, int)> saveCallback = {};
     if (model->getFilename().empty())
     {
-        model->setFilename(editorPrompt("Save as: %s (ESC to cancel)", saveCallback));
+        model->setFilename(editorPrompt("(ESC to cancel) Save as: ", saveCallback));
         if (model->getFilename().empty())
         {
             model->setStatusMsg("Save aborted");
@@ -359,18 +359,10 @@ void Controller::editorFindCallback(std::string& query, int key)
     static int last_match = -1;
     static int direction = 1;
 
-    static int saved_hl_line;
-    //static char *saved_hl = NULL;
+    static int restoreRow = -1;
 
-    /*
-    if (saved_hl)
-    {
-        memcpy(model->rowList[saved_hl_line].hl, saved_hl, model->rowList[saved_hl_line].rsize);
-        free(saved_hl);
-        saved_hl = NULL;
-    }
-    */
-
+    model->updateRowSyntax(restoreRow);
+    
     if (key == '\r' || key == '\x1b')
     {
         last_match = -1;
@@ -411,10 +403,9 @@ void Controller::editorFindCallback(std::string& query, int key)
             model->cy = current;
             model->cx = model->rowRxToCx(row, pos);
             model->rowoff = model->numRows();
+            scroll();
 
-            saved_hl_line = current;
-            //saved_hl = (char *)malloc(row->rsize);
-            //memcpy(saved_hl, row->hl, row->rsize);
+            restoreRow = current;
             std::fill_n(row.highlight.begin() + pos, query.size(), Syntax::HL_MATCH);
 
             break;
@@ -432,9 +423,9 @@ void Controller::editorFind()
     using namespace std::placeholders;
     auto cb = std::bind(&Controller::editorFindCallback, this, _1, _2);
     
-    std::string query = editorPrompt("Search: %s (Use ESC/Arrows/Enter)", cb);
+    std::string query = editorPrompt("(Use ESC/Arrows/Enter) Search: ", cb);
 
-    if(!query.empty())
+    if(query.empty())
     {
         model->cx = saved_cx;
         model->cy = saved_cy;

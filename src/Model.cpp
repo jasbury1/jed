@@ -96,8 +96,15 @@ void Model::updateRowRender(Model::erow& newRow)
         }
     }
     newRow.highlight = std::vector<unsigned char>(newRow.render.size(), Syntax::HL_NORMAL);
-    if(syntax != nullptr){
-        syntax->updateSyntaxHighlight(rowList, newRow.idx);
+    updateRowSyntax(newRow.idx);
+}
+
+void Model::updateRowSyntax(int row){
+    if(row < 0 || row > rowList.size()) {
+        return;
+    }
+    if(syntax != nullptr) {
+        syntax->updateSyntaxHighlight(rowList, row);
     }
 }
 
