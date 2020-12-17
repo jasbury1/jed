@@ -1,8 +1,5 @@
 #include <unistd.h>
-#include <Controller.h>
 #include <errno.h>
-#include <ctype.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <iostream>
 #include <fstream>
@@ -10,6 +7,7 @@
 #include <functional>
 
 #include "Syntax.h"
+#include "Controller.h"
 
 Controller::Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view) : model(model), view(view)
 {
@@ -380,16 +378,15 @@ void Controller::editorFind()
 
 void Controller::editorFindCallback(std::string& query, int key)
 {
-    static int last_match = -1;
+    static int lastMatch = -1;
     static int direction = 1;
-
     static int restoreRow = -1;
 
     model->updateRowSyntax(restoreRow);
     
     if (key == '\r' || key == '\x1b')
     {
-        last_match = -1;
+        lastMatch = -1;
         direction = 1;
         return;
     }
@@ -403,13 +400,13 @@ void Controller::editorFindCallback(std::string& query, int key)
     }
     else
     {
-        last_match = -1;
+        lastMatch = -1;
         direction = 1;
     }
 
-    if (last_match == -1)
+    if (lastMatch == -1)
         direction = 1;
-    int current = last_match;
+    int current = lastMatch;
     int i;
     for (i = 0; i < model->numRows(); i++)
     {
@@ -423,7 +420,7 @@ void Controller::editorFindCallback(std::string& query, int key)
         auto pos = model->rowRender(current).find(query);
         if (pos != std::string::npos)
         {
-            last_match = current;
+            lastMatch = current;
             model->cy = current;
             model->cx = model->rowRxToCx(row, pos);
             model->rowoff = model->numRows();

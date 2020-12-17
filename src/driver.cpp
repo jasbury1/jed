@@ -4,17 +4,11 @@
 #define _BSD_SOURCE
 #define _GNU_SOURCE
 
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
-#include <Model.h>
-#include <Controller.h>
-#include <TerminalView.h>
 #include <string>
+
+#include "Model.h"
+#include "Controller.h"
+#include "TerminalView.h"
 
 /*** terminal ***/
 
@@ -44,7 +38,7 @@ int main(int argc, char *argv[])
 
     model->setStatusMsg("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
-    while (1)
+    while (true)
     {
         view->draw();
         controller->processInput();
