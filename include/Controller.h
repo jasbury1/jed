@@ -1,10 +1,10 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include <TerminalView.h>
-#include <Model.h>
+class Model;
+class TerminalView;
 
-#define KILO_QUIT_TIMES 3
+constexpr auto quitTimes = 3;
 
 class Controller
 {

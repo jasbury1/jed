@@ -1,9 +1,10 @@
 #ifndef TERMINALVIEW_H
 #define TERMINALVIEW_H
 
-#include <View.h>
 #include <memory>
 #include <termios.h>
+
+#include "View.h"
 
 class Model;
 

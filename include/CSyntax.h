@@ -1,11 +1,11 @@
 #ifndef CSYNTAX_H
 #define CSYNTAX_H
 
-#include "Syntax.h"
-#include "Model.h"
-
 #include <vector>
 #include <string>
+
+#include "Syntax.h"
+#include "Model.h"
 
 class CSyntax : public Syntax
 {

@@ -9,6 +9,7 @@
 #include "Syntax.h"
 #include "Model.h"
 #include "Controller.h"
+#include "TerminalView.h"
 
 Controller::Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view) : model(model), view(view)
 {
@@ -20,7 +21,7 @@ Controller::~Controller()
 
 void Controller::processInput()
 {
-    static int quit_times = KILO_QUIT_TIMES;
+    static int quit_times = quitTimes;
 
     int c = readKey();
 
@@ -104,7 +105,7 @@ void Controller::processInput()
         break;
     }
 
-    quit_times = KILO_QUIT_TIMES;
+    quit_times = quitTimes;
     scroll();
 }
 

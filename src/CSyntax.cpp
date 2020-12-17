@@ -1,8 +1,8 @@
-#include "CSyntax.h"
-#include "Model.h"
-
 #include <string>
 #include <vector>
+
+#include "CSyntax.h"
+#include "Model.h"
 
 CSyntax::CSyntax()
 {
