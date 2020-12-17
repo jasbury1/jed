@@ -7,6 +7,7 @@
 #include <functional>
 
 #include "Syntax.h"
+#include "Model.h"
 #include "Controller.h"
 
 Controller::Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view) : model(model), view(view)
@@ -29,7 +30,7 @@ void Controller::processInput()
         model->insertNewline();
         break;
 
-    case CTRL_KEY('q'):
+    case ctrlKey('q'):
         if (model->dirty && quit_times > 0)
         {
             model->setStatusMsg("WARNING!!! File has unsaved changes. "
@@ -42,7 +43,7 @@ void Controller::processInput()
         exit(0);
         break;
 
-    case CTRL_KEY('s'):
+    case ctrlKey('s'):
         saveFile();
         break;
 
@@ -55,12 +56,12 @@ void Controller::processInput()
             model->cx = model->rowContentLength(model->cy);
         break;
 
-    case CTRL_KEY('f'):
+    case ctrlKey('f'):
         editorFind();
         break;
 
     case BACKSPACE:
-    case CTRL_KEY('h'):
+    case ctrlKey('h'):
     case DEL_KEY:
         if (c == DEL_KEY)
             moveCursor(ARROW_RIGHT);
@@ -94,7 +95,7 @@ void Controller::processInput()
         moveCursor(c);
         break;
 
-    case CTRL_KEY('l'):
+    case ctrlKey('l'):
     case '\x1b':
         break;
 
@@ -273,7 +274,7 @@ void Controller::moveCursor(int key)
     }
 }
 
-std::string Controller::editorPrompt(const std::string& prompt, std::function<void(std::string&, int)> callback)
+std::string Controller::promptUser(const std::string& prompt, std::function<void(std::string&, int)> callback)
 {
     std::string response = "";
 
@@ -283,7 +284,7 @@ std::string Controller::editorPrompt(const std::string& prompt, std::function<vo
         view->draw();
 
         int c = readKey();
-        if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE)
+        if (c == DEL_KEY || c == ctrlKey('h') || c == BACKSPACE)
         {
             if (!response.empty()){
                 response.pop_back();
@@ -327,7 +328,7 @@ void Controller::saveFile()
 
     if (model->getFilename().empty())
     {
-        model->setFilename(editorPrompt("(ESC to cancel) Save as: ", cb));
+        model->setFilename(promptUser("(ESC to cancel) Save as: ", cb));
         if (model->getFilename().empty())
         {
             model->setStatusMsg("Save aborted");
@@ -363,9 +364,9 @@ void Controller::editorFind()
     int saved_rowoff = model->rowoff;
 
     using namespace std::placeholders;
-    auto cb = std::bind(&Controller::editorFindCallback, this, _1, _2);
+    auto cb = std::bind(&Controller::findCallback, this, _1, _2);
     
-    std::string query = editorPrompt("(Use ESC/Arrows/Enter) Search: ", cb);
+    std::string query = promptUser("(Use ESC/Arrows/Enter) Search: ", cb);
 
     if(query.empty())
     {
@@ -376,7 +377,7 @@ void Controller::editorFind()
     }
 }
 
-void Controller::editorFindCallback(std::string& query, int key)
+void Controller::findCallback(std::string& query, int key)
 {
     static int lastMatch = -1;
     static int direction = 1;

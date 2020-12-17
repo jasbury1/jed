@@ -1,9 +1,11 @@
 #ifndef TERMINALVIEW_H
 #define TERMINALVIEW_H
 
-#include <Model.h>
 #include <View.h>
 #include <memory>
+#include <termios.h>
+
+class Model;
 
 class TerminalView : public View
 {
@@ -24,10 +26,10 @@ private:
     struct termios origTermios;
 
     void drawView();
-    void editorDrawRows(std::string& displayStr);
-    void editorDrawStatusBar(std::string& displayStr);
-    void editorDrawMessageBar(std::string& displayStr);
-    int editorSyntaxToColor(int hl);
+    void drawRows(std::string& displayStr);
+    void drawStatusBar(std::string& displayStr);
+    void drawMessageBar(std::string& displayStr);
+    int syntaxToColor(int hl);
     void disableRawMode();
     void enableRawMode();
     int updateWindowSize();

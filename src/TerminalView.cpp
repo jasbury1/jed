@@ -29,9 +29,9 @@ void TerminalView::drawView()
     displayStr.append("\x1b[?25l", 6);
     displayStr.append("\x1b[H", 3);
 
-    editorDrawRows(displayStr);
-    editorDrawStatusBar(displayStr);
-    editorDrawMessageBar(displayStr);
+    drawRows(displayStr);
+    drawStatusBar(displayStr);
+    drawMessageBar(displayStr);
 
     char buf[32];
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (model->cy - model->rowoff) + 1,
@@ -43,7 +43,7 @@ void TerminalView::drawView()
     write(STDOUT_FILENO, displayStr.c_str(), displayStr.length());
 }
 
-void TerminalView::editorDrawRows(std::string &displayStr)
+void TerminalView::drawRows(std::string &displayStr)
 {
     for (int r = 0; r < screenrows; r++)
     {
@@ -55,7 +55,7 @@ void TerminalView::editorDrawRows(std::string &displayStr)
             {
                 char welcome[80];
                 int welcomelen = snprintf(welcome, sizeof(welcome),
-                                          "Kilo editor -- version %s", KILO_VERSION);
+                                          "Kilo editor -- version %s", editorVersion);
                 if (welcomelen > screencols)
                     welcomelen = screencols;
                 int padding = (screencols - welcomelen) / 2;
@@ -115,7 +115,7 @@ void TerminalView::editorDrawRows(std::string &displayStr)
                 }
                 else
                 {
-                    int color = editorSyntaxToColor(model->rowHighlight(rowNum)[j + model->coloff]);
+                    int color = syntaxToColor(model->rowHighlight(rowNum)[j + model->coloff]);
                     if (color != current_color)
                     {
                         current_color = color;
@@ -134,7 +134,7 @@ void TerminalView::editorDrawRows(std::string &displayStr)
     }
 }
 
-void TerminalView::editorDrawStatusBar(std::string &displayStr)
+void TerminalView::drawStatusBar(std::string &displayStr)
 {
     displayStr.append("\x1b[7m", 4);
     char status[80], rstatus[80];
@@ -163,7 +163,7 @@ void TerminalView::editorDrawStatusBar(std::string &displayStr)
     displayStr.append("\r\n", 2);
 }
 
-void TerminalView::editorDrawMessageBar(std::string &displayStr)
+void TerminalView::drawMessageBar(std::string &displayStr)
 {
     displayStr.append("\x1b[K", 3);
     int msglen = model->getStatusMsg().size();
@@ -174,7 +174,7 @@ void TerminalView::editorDrawMessageBar(std::string &displayStr)
     displayStr += status;
 }
 
-int TerminalView::editorSyntaxToColor(int hl)
+int TerminalView::syntaxToColor(int hl)
 {
     switch (hl)
     {

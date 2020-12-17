@@ -35,12 +35,12 @@ private:
     int readKey();
     void moveCursor(int key);
     void scroll();
-    std::string editorPrompt(const std::string& prompt, std::function<void(std::string&, int)> callback);
+    std::string promptUser(const std::string& prompt, std::function<void(std::string&, int)> callback);
 
     void saveFile();
     void editorFind();
 
-    void editorFindCallback(std::string& query, int key);
+    void findCallback(std::string& query, int key);
     void saveCallback(std::string& query, int i);
 };
 

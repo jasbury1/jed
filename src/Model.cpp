@@ -82,7 +82,7 @@ void Model::updateRowRender(Model::erow& newRow)
     for(auto& c : newRow.contents) {
         // Replace tabs with spaces
         if(c == '\t') {
-            for(int j = 0; j < KILO_TAB_STOP; ++j) {
+            for(int j = 0; j < tabStop; ++j) {
                 newRow.render += " ";
             }
         }
@@ -216,7 +216,7 @@ int Model::rowCxToRx(const Model::erow& row, int cx)
     for (j = 0; j < cx; j++)
     {
         if (row.contents[j] == '\t')
-            rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+            rx += (tabStop - 1) - (rx % tabStop);
         rx++;
     }
     return rx;
@@ -229,7 +229,7 @@ int Model::rowRxToCx(const Model::erow& row, int rx)
     for (; i < row.contents.size(); i++)
     {
         if (row.contents[i] == '\t')
-            cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);
+            cur_rx += (tabStop - 1) - (cur_rx % tabStop);
         cur_rx++;
 
         if (cur_rx > rx)

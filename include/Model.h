@@ -6,12 +6,11 @@
 #include <string>
 #include <vector>
 
-#define CTRL_KEY(k) ((k)&0x1f)
-
-#define KILO_VERSION "0.0.1"
-#define KILO_TAB_STOP 8
-
 class Syntax;
+
+constexpr auto editorVersion = "0.0.1";
+constexpr auto tabStop = 8;
+constexpr auto ctrlKey(int k) {return k & 0x1f;}
 
 class Model
 {
