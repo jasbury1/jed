@@ -6,8 +6,9 @@
 #include "Model.h"
 #include "Syntax.h"
 
-
-Model::Model() : cx(0), cy(0), rx(0), rowoff(0), coloff(0), dirty(0), statusTime{std::time(nullptr)}, syntax{nullptr}
+Model::Model()
+    : cx(0), cy(0), rx(0), rowoff(0), coloff(0), dirty(0),
+      statusMsg{startupMsg}, statusTime{std::time(nullptr)}, syntax{nullptr}
 {
 }
 
@@ -17,13 +18,12 @@ Model::~Model()
 
 void Model::openFile(const std::string &inputFile)
 {
-    filename = inputFile;
-
-    selectSyntaxHighlight();
-
     std::ifstream infile(inputFile);
     if (infile.is_open())
     {
+        filename = inputFile;
+        selectSyntaxHighlight();
+
         std::string line;
         while (getline(infile, line))
         {
@@ -40,7 +40,8 @@ void Model::openFile(const std::string &inputFile)
     }
     else
     {
-        //TODO: We could not open the file
+        std::cerr << "AHHHHHH!!!!";
+        setStatusMsg("Failed to open file '" + inputFile + "': " + strerror(errno));
     }
 }
 
@@ -49,45 +50,53 @@ void Model::selectSyntaxHighlight()
     if (filename.empty())
         return;
     auto pos = filename.rfind(".");
-    if(pos == std::string::npos) {
+    if (pos == std::string::npos)
+    {
         return;
     }
     std::string ext = filename.substr(pos);
 
     // Check to see if the extension has changed
-    if(ext != extension) {
+    if (ext != extension)
+    {
         extension = ext;
         syntax = Syntax::getSyntax(ext);
 
-        if(syntax == nullptr) {
+        if (syntax == nullptr)
+        {
             return;
         }
 
         // Redo all syntax highlighting based on new extension
-        for(std::size_t i = 0; i < rowList.size(); ++i) {
+        for (std::size_t i = 0; i < rowList.size(); ++i)
+        {
             syntax->updateSyntaxHighlight(rowList, i);
         }
     }
 }
 
-void Model::setStatusMsg(const std::string& msg)
+void Model::setStatusMsg(const std::string &msg)
 {
     statusMsg = msg;
     statusTime = std::time(nullptr);
 }
 
-void Model::updateRowRender(Model::erow& newRow)
+void Model::updateRowRender(Model::erow &newRow)
 {
     newRow.render = "";
-    for(auto& c : newRow.contents) {
+    for (auto &c : newRow.contents)
+    {
         // Replace tabs with spaces
-        if(c == '\t') {
-            for(int j = 0; j < tabStop; ++j) {
+        if (c == '\t')
+        {
+            for (int j = 0; j < tabStop; ++j)
+            {
                 newRow.render += " ";
             }
         }
         // Copy over all regular characters
-        else {
+        else
+        {
             newRow.render += c;
         }
     }
@@ -95,24 +104,26 @@ void Model::updateRowRender(Model::erow& newRow)
     updateRowSyntax(newRow.idx);
 }
 
-void Model::updateRowSyntax(std::size_t row){
-    if(row < 0 || row > rowList.size()) {
+void Model::updateRowSyntax(std::size_t row)
+{
+    if (row < 0 || row > rowList.size())
+    {
         return;
     }
-    if(syntax != nullptr) {
+    if (syntax != nullptr)
+    {
         syntax->updateSyntaxHighlight(rowList, row);
     }
 }
 
-void Model::insertRow(int at, const std::string& str, int startIndex, std::size_t len)
+void Model::insertRow(int at, const std::string &str, int startIndex, std::size_t len)
 {
     if (at < 0 || at > numRows())
         return;
 
-    //TODO: Bounds check for len and startIndex
-
     // Increase the internal index number for each row
-    for(int i = at; i < numRows(); ++i) {
+    for (int i = at; i < numRows(); ++i)
+    {
         rowList[i].idx++;
     }
     Model::erow newRow;
@@ -127,15 +138,17 @@ void Model::insertRow(int at, const std::string& str, int startIndex, std::size_
     dirty++;
 }
 
-void Model::deleteRow(int at) {
+void Model::deleteRow(int at)
+{
     if (at < 0 || at >= numRows())
         return;
-    
+
     auto rowIt = rowList.erase(rowList.begin() + at);
-    for(; rowIt < rowList.end(); ++rowIt) {
+    for (; rowIt < rowList.end(); ++rowIt)
+    {
         rowIt->idx--;
     }
-    dirty++; 
+    dirty++;
 }
 
 void Model::insertChar(int c)
@@ -148,7 +161,8 @@ void Model::insertChar(int c)
     cx++;
 }
 
-void Model::rowInsertChar(int c) {
+void Model::rowInsertChar(int c)
+{
     auto curRow = rowList.begin() + cy;
     std::size_t at = cx;
 
@@ -159,28 +173,30 @@ void Model::rowInsertChar(int c) {
     curRow->contents.insert(at, 1, c);
 
     updateRowRender(*curRow);
-    dirty++; 
+    dirty++;
 }
 
-void Model::insertNewline() {
-    //TODO: Bounds checking
+void Model::insertNewline()
+{
     if (cx == 0)
     {
         insertRow(cy, "", 0, 0);
     }
+    else if(cx == rowContentLength()) {
+        insertRow(cy + 1, "", 0, 0);
+    }
     else
     {
-        insertRow(cy + 1, this->curRow().contents, cx, rowContentLength() - cx);
+        insertRow(cy + 1, curRow().contents, cx, rowContentLength() - cx);
         this->curRowContents().resize(cx);
         updateRowRender(this->curRow());
     }
     cy++;
-    cx = 0;        
+    cx = 0;
 }
 
 void Model::deleteChar()
 {
-    //TODO: Better bounds checking for rowList index
     if (cy == numRows())
         return;
     if (cx == 0 && cy == 0)
@@ -189,7 +205,8 @@ void Model::deleteChar()
     // Deleting a character inside the row
     if (cx > 0)
     {
-        if(cx > rowContentLength()) {
+        if (cx > rowContentLength())
+        {
             return;
         }
         this->curRowContents().erase(cx - 1, 1);
@@ -206,10 +223,10 @@ void Model::deleteChar()
         dirty++;
         deleteRow(cy);
         cy--;
-    } 
+    }
 }
 
-int Model::rowCxToRx(const Model::erow& row, int cx)
+int Model::rowCxToRx(const Model::erow &row, int cx)
 {
     int rx = 0;
     int j;
@@ -222,7 +239,7 @@ int Model::rowCxToRx(const Model::erow& row, int cx)
     return rx;
 }
 
-int Model::rowRxToCx(const Model::erow& row, int rx)
+int Model::rowRxToCx(const Model::erow &row, int rx)
 {
     int cur_rx = 0;
     std::size_t i = 0;

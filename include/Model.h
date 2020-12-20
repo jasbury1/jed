@@ -9,6 +9,7 @@
 class Syntax;
 
 constexpr auto editorVersion = "0.0.1";
+constexpr auto startupMsg = "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find";
 constexpr auto tabStop = 8;
 constexpr auto ctrlKey(int k) {return k & 0x1f;}
 

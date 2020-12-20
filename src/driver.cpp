@@ -36,8 +36,6 @@ int main(int argc, char *argv[])
         model->openFile(filename);
     }
 
-    model->setStatusMsg("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
-
     while (true)
     {
         view->draw();
