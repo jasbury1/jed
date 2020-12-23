@@ -6,10 +6,10 @@
 #include <string>
 #include <functional>
 
-#include "Syntax.h"
 #include "Model.h"
 #include "Controller.h"
 #include "TerminalView.h"
+#include "SyntaxEngine.h"
 
 Controller::Controller(std::shared_ptr<Model> model, std::shared_ptr<TerminalView> view) : model(model), view(view)
 {
@@ -35,7 +35,8 @@ void Controller::processInput()
         if (model->dirty && quit_times > 0)
         {
             model->setStatusMsg("WARNING!!! File has unsaved changes. "
-                                         "Press Ctrl-Q " + std::to_string(quit_times) + "more times to quit.");
+                                "Press Ctrl-Q " +
+                                std::to_string(quit_times) + " more times to quit.");
             quit_times--;
             return;
         }
@@ -265,7 +266,8 @@ void Controller::moveCursor(int key)
     }
 
     auto rowlen = 0;
-    if(model->cy < model->numRows()){
+    if (model->cy < model->numRows())
+    {
         rowlen = model->rowContentLength();
     }
 
@@ -275,7 +277,7 @@ void Controller::moveCursor(int key)
     }
 }
 
-std::string Controller::promptUser(const std::string& prompt, std::function<void(std::string&, int)> callback)
+std::string Controller::promptUser(const std::string &prompt, std::function<void(std::string &, int)> callback)
 {
     std::string response = "";
 
@@ -287,7 +289,8 @@ std::string Controller::promptUser(const std::string& prompt, std::function<void
         int c = readKey();
         if (c == DEL_KEY || c == ctrlKey('h') || c == BACKSPACE)
         {
-            if (!response.empty()){
+            if (!response.empty())
+            {
                 response.pop_back();
             }
         }
@@ -326,7 +329,6 @@ void Controller::saveFile()
     using namespace std::placeholders;
     auto cb = std::bind(&Controller::saveCallback, this, _1, _2);
 
-
     if (model->getFilename().empty())
     {
         model->setFilename(promptUser("(ESC to cancel) Save as: ", cb));
@@ -342,8 +344,10 @@ void Controller::saveFile()
 
     std::ofstream saveFile(model->getFilename(), std::ios::out | std::ios::trunc);
 
-    if(saveFile.is_open()) {
-        for(int i = 0; i < model->numRows(); ++i) {
+    if (saveFile.is_open())
+    {
+        for (int i = 0; i < model->numRows(); ++i)
+        {
             saveFile << model->rowContents(i) << "\n";
             len += model->rowContentLength(i) + 1;
         }
@@ -351,7 +355,8 @@ void Controller::saveFile()
         model->setStatusMsg(std::to_string(len) + " bytes written to disk");
         saveFile.close();
     }
-    else {
+    else
+    {
         //TODO IO ERROR HERE
         model->setStatusMsg("Can't save! IO error: TODO");
     }
@@ -366,10 +371,10 @@ void Controller::editorFind()
 
     using namespace std::placeholders;
     auto cb = std::bind(&Controller::findCallback, this, _1, _2);
-    
+
     std::string query = promptUser("(Use ESC/Arrows/Enter) Search: ", cb);
 
-    if(query.empty())
+    if (query.empty())
     {
         model->cx = saved_cx;
         model->cy = saved_cy;
@@ -378,14 +383,14 @@ void Controller::editorFind()
     }
 }
 
-void Controller::findCallback(std::string& query, int key)
+void Controller::findCallback(std::string &query, int key)
 {
     static int lastMatch = -1;
     static int direction = 1;
     static int restoreRow = -1;
 
     model->updateRowSyntax(restoreRow);
-    
+
     if (key == '\r' || key == '\x1b')
     {
         lastMatch = -1;
@@ -418,7 +423,7 @@ void Controller::findCallback(std::string& query, int key)
         else if (current == model->numRows())
             current = 0;
 
-        Model::erow& row = model->getRow(current);        
+        Model::erow &row = model->getRow(current);
         auto pos = model->rowRender(current).find(query);
         if (pos != std::string::npos)
         {
@@ -429,14 +434,15 @@ void Controller::findCallback(std::string& query, int key)
             scroll();
 
             restoreRow = current;
-            std::fill_n(row.highlight.begin() + pos, query.size(), Syntax::HL_MATCH);
+            std::fill_n(row.highlight.begin() + pos, query.size(), SyntaxEngine::HL_MATCH);
 
             break;
         }
     }
 }
 
-void Controller::saveCallback(std::string& query, int i) {
+void Controller::saveCallback(std::string &query, int i)
+{
     // TODO: No functionality yet
     return;
 }

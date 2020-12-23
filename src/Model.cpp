@@ -4,11 +4,11 @@
 #include <iostream>
 
 #include "Model.h"
-#include "Syntax.h"
+#include "SyntaxEngine.h"
 
 Model::Model()
     : cx(0), cy(0), rx(0), rowoff(0), coloff(0), dirty(0),
-      statusMsg{startupMsg}, statusTime{std::time(nullptr)}, syntax{nullptr}
+      statusMsg{startupMsg}, statusTime{std::time(nullptr)}, syntax{std::make_unique<SyntaxEngine>()}
 {
 }
 
@@ -40,8 +40,7 @@ void Model::openFile(const std::string &inputFile)
     }
     else
     {
-        std::cerr << "AHHHHHH!!!!";
-        setStatusMsg("Failed to open file '" + inputFile + "': " + strerror(errno));
+        setStatusError("Failed to open file '" + inputFile + "'");
     }
 }
 
@@ -60,7 +59,7 @@ void Model::selectSyntaxHighlight()
     if (ext != extension)
     {
         extension = ext;
-        syntax = Syntax::getSyntax(ext);
+        syntax->setFileType(ext);
 
         if (syntax == nullptr)
         {
@@ -73,12 +72,6 @@ void Model::selectSyntaxHighlight()
             syntax->updateSyntaxHighlight(rowList, i);
         }
     }
-}
-
-void Model::setStatusMsg(const std::string &msg)
-{
-    statusMsg = msg;
-    statusTime = std::time(nullptr);
 }
 
 void Model::updateRowRender(Model::erow &newRow)
@@ -100,7 +93,7 @@ void Model::updateRowRender(Model::erow &newRow)
             newRow.render += c;
         }
     }
-    newRow.highlight = std::vector<unsigned char>(newRow.render.size(), Syntax::HL_NORMAL);
+    newRow.highlight = std::vector<unsigned char>(newRow.render.size(), SyntaxEngine::HL_NORMAL);
     updateRowSyntax(newRow.idx);
 }
 
@@ -166,7 +159,6 @@ void Model::rowInsertChar(int c)
     auto curRow = rowList.begin() + cy;
     std::size_t at = cx;
 
-    // TODO: Is this check even necessary??
     if (at < 0 || at > curRow->contents.size())
         at = curRow->contents.size();
 
@@ -182,13 +174,14 @@ void Model::insertNewline()
     {
         insertRow(cy, "", 0, 0);
     }
-    else if(cx == rowContentLength()) {
+    else if (cx == rowContentLength())
+    {
         insertRow(cy + 1, "", 0, 0);
     }
     else
     {
         insertRow(cy + 1, curRow().contents, cx, rowContentLength() - cx);
-        this->curRowContents().resize(cx);
+        curRowContents().resize(cx);
         updateRowRender(this->curRow());
     }
     cy++;
@@ -253,4 +246,16 @@ int Model::rowRxToCx(const Model::erow &row, int rx)
             return i;
     }
     return i;
+}
+
+void Model::setStatusMsg(const std::string &msg, bool isError)
+{
+    statusMsg = msg;
+    statusTime = std::time(nullptr);
+    statusError = isError;
+}
+
+void Model::setStatusError(const std::string &errorMsg)
+{
+    setStatusMsg(errorMsg + ": " + strerror(errno), true);
 }

@@ -14,9 +14,8 @@ public:
     TerminalView(std::shared_ptr<const Model> model);
     ~TerminalView();
 
-    int getScreenRows() const {return screenrows;}
-    int getScreenCols() const {return screencols;}
-
+    int getScreenRows() const { return screenrows; }
+    int getScreenCols() const { return screencols; }
 
 private:
     int screenrows;
@@ -27,9 +26,9 @@ private:
     struct termios origTermios;
 
     void drawView();
-    void drawRows(std::string& displayStr);
-    void drawStatusBar(std::string& displayStr);
-    void drawMessageBar(std::string& displayStr);
+    void drawRows(std::string &displayStr);
+    void drawStatusBar(std::string &displayStr);
+    void drawMessageBar(std::string &displayStr);
     int syntaxToColor(int hl);
     void disableRawMode();
     void enableRawMode();

@@ -5,7 +5,7 @@
 
 #include "TerminalView.h"
 #include "Model.h"
-#include "Syntax.h"
+#include "SyntaxEngine.h"
 
 TerminalView::TerminalView(std::shared_ptr<const Model> model) : model(model)
 {
@@ -104,7 +104,7 @@ void TerminalView::drawRows(std::string &displayStr)
                         displayStr.append(buf, clen);
                     }
                 }
-                else if (model->rowHighlight(rowNum)[j + model->coloff] == Syntax::HL_NORMAL)
+                else if (model->rowHighlight(rowNum)[j + model->coloff] == SyntaxEngine::HL_NORMAL)
                 {
                     if (current_color != -1)
                     {
@@ -142,7 +142,7 @@ void TerminalView::drawStatusBar(std::string &displayStr)
                        !model->getFilename().empty() ? model->getFilename().c_str() : "[No Name]", model->numRows(),
                        model->dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
-                        model->getSyntax() != nullptr ? model->getSyntax()->fileType().c_str() : "plaintext", model->cy + 1, model->numRows());
+                        model->getExtension().empty() ? "Plaintext" : model->getExtension().c_str(), model->cy + 1, model->numRows());
     if (len > screencols)
         len = screencols;
     displayStr.append(status, len);
@@ -166,6 +166,14 @@ void TerminalView::drawStatusBar(std::string &displayStr)
 void TerminalView::drawMessageBar(std::string &displayStr)
 {
     displayStr.append("\x1b[K", 3);
+    if(std::difftime(model->getStatusTime(), std::time(nullptr)) > 5) {
+        displayStr += "";
+        return;
+    }
+
+    if(model->isStatusError()) {
+        displayStr += "\x1b[31m";
+    }
     int msglen = model->getStatusMsg().size();
     if (msglen > screencols)
         msglen = screencols;
@@ -178,18 +186,18 @@ int TerminalView::syntaxToColor(int hl)
 {
     switch (hl)
     {
-    case Syntax::HL_COMMENT:
-    case Syntax::HL_MLCOMMENT:
+    case SyntaxEngine::HL_COMMENT:
+    case SyntaxEngine::HL_MLCOMMENT:
         return 36;
-    case Syntax::HL_KEYWORD1:
+    case SyntaxEngine::HL_KEYWORD1:
         return 33;
-    case Syntax::HL_KEYWORD2:
+    case SyntaxEngine::HL_KEYWORD2:
         return 32;
-    case Syntax::HL_STRING:
+    case SyntaxEngine::HL_STRING:
         return 35;
-    case Syntax::HL_NUMBER:
+    case SyntaxEngine::HL_NUMBER:
         return 31;
-    case Syntax::HL_MATCH:
+    case SyntaxEngine::HL_MATCH:
         return 34;
     default:
         return 37;

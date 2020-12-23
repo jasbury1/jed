@@ -6,12 +6,12 @@
 #include <string>
 #include <vector>
 
-class Syntax;
+class SyntaxEngine;
 
 constexpr auto editorVersion = "0.0.1";
 constexpr auto startupMsg = "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find";
 constexpr auto tabStop = 8;
-constexpr auto ctrlKey(int k) {return k & 0x1f;}
+constexpr auto ctrlKey(int k) { return k & 0x1f; }
 
 class Model
 {
@@ -37,12 +37,17 @@ public:
     ~Model();
     void openFile(const std::string &inputFile);
 
-    void setStatusMsg(const std::string &msg);
+    void setStatusMsg(const std::string &msg, bool isError = false);
     const std::string &getStatusMsg() const { return statusMsg; }
     void setFilename(const std::string &f) { filename = f; }
     const std::string &getFilename() const { return filename; }
 
+    const std::string &getExtension() const { return extension; }
+
+    void setStatusError(const std::string &errorMsg);
+
     std::time_t getStatusTime() const { return statusTime; }
+    bool isStatusError() const { return statusError; }
 
     void selectSyntaxHighlight();
     int rowCxToRx(const Model::erow &row, int cx);
@@ -80,8 +85,6 @@ public:
     erow &getRow(std::size_t row) { return rowList[row]; }
     erow &curRow() { return rowList[cy]; }
 
-    const std::unique_ptr<const Syntax> &getSyntax() const { return syntax; }
-
     void updateRowSyntax(std::size_t row);
 
 private:
@@ -89,10 +92,11 @@ private:
     std::string extension = "";
     std::string statusMsg = "";
     std::time_t statusTime;
-    std::unique_ptr<const Syntax> syntax;
+    bool statusError = false;
+    std::unique_ptr<SyntaxEngine> syntax;
     std::vector<erow> rowList;
 
-    void insertRow(int at, const std::string& str, int startIndex, std::size_t len);
+    void insertRow(int at, const std::string &str, int startIndex, std::size_t len);
     void deleteRow(int at);
     void updateRowRender(erow &newRow);
     void rowInsertChar(int c);
