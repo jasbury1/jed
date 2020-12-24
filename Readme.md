@@ -2,6 +2,9 @@ JED (James EDitor)
 
 A (heavily) WIP OO text editor in C++.
 
+![Screenshot Image](/images/screenshot.png)
+Format: ![Alt Text](url)
+
 
 To Run:
 Run make inside the repo start directory
