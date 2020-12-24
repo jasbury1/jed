@@ -29,7 +29,9 @@ private:
     void drawRows(std::string &displayStr);
     void drawStatusBar(std::string &displayStr);
     void drawMessageBar(std::string &displayStr);
-    int syntaxToColor(int hl);
+    void drawFileRow(std::string &displayStr, int row);
+
+    std::string syntaxToColor(int hl);
     void disableRawMode();
     void enableRawMode();
     int updateWindowSize();

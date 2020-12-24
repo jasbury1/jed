@@ -77,61 +77,67 @@ void TerminalView::drawRows(std::string &displayStr)
         // Draw rows from the file
         else
         {
-            auto len = model->rowRenderLength(rowNum) - model->coloff;
-            if (len < 0)
-                len = 0;
-            if (len > screencols)
-                len = screencols;
-            int current_color = -1;
-            for (int j = 0; j < len; j++)
-            {
-                if (iscntrl(model->rowRender(rowNum)[model->coloff + j]))
-                {
-                    displayStr.append("\x1b[7m", 4);
-                    if (model->rowRender(rowNum)[model->coloff + j] <= 26)
-                    {
-                        displayStr += '@' + model->rowRender(rowNum)[model->coloff + j];
-                    }
-                    else
-                    {
-                        displayStr += '?';
-                    }
-                    displayStr.append("\x1b[m", 3);
-                    if (current_color != -1)
-                    {
-                        char buf[16];
-                        int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", current_color);
-                        displayStr.append(buf, clen);
-                    }
-                }
-                else if (model->rowHighlight(rowNum)[j + model->coloff] == SyntaxEngine::HL_NORMAL)
-                {
-                    if (current_color != -1)
-                    {
-                        displayStr.append("\x1b[39m", 5);
-                        current_color = -1;
-                    }
-                    displayStr += model->rowRender(rowNum)[model->coloff + j];
-                }
-                else
-                {
-                    int color = syntaxToColor(model->rowHighlight(rowNum)[j + model->coloff]);
-                    if (color != current_color)
-                    {
-                        current_color = color;
-                        char buf[16];
-                        int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
-                        displayStr.append(buf, clen);
-                    }
-                    displayStr += model->rowRender(rowNum)[model->coloff + j];
-                }
-            }
-            displayStr.append("\x1b[39m", 5);
+            drawFileRow(displayStr, rowNum);
         }
 
         displayStr.append("\x1b[K", 3);
         displayStr.append("\r\n", 2);
     }
+}
+
+void TerminalView::drawFileRow(std::string &displayStr, int row)
+{
+    auto len = model->rowRenderLength(row) - model->coloff;
+    if (len < 0)
+        len = 0;
+    if (len > screencols)
+        len = screencols;
+
+    int current_color = SyntaxEngine::HL_NORMAL;
+    for (int j = 0; j < len; j++)
+    {
+        if (iscntrl(model->rowRender(row)[model->coloff + j]))
+        {
+            displayStr.append("\x1b[7m", 4);
+            if (model->rowRender(row)[model->coloff + j] <= 26)
+            {
+                displayStr += '@' + model->rowRender(row)[model->coloff + j];
+            }
+            else
+            {
+                displayStr += '?';
+            }
+            displayStr.append("\x1b[m", 3);
+            if (current_color != -1)
+            {
+                char buf[16];
+                int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", current_color);
+                displayStr.append(buf, clen);
+            }
+        }
+        else if (model->rowHighlight(row)[j + model->coloff] == SyntaxEngine::HL_NORMAL)
+        {
+            if (current_color != SyntaxEngine::HL_NORMAL)
+            {
+                // Reset to default colors
+                displayStr.append("\x1b[0m", 5);
+                current_color = SyntaxEngine::HL_NORMAL;
+            }
+            displayStr += model->rowRender(row)[model->coloff + j];
+        }
+        else
+        {
+            auto color = model->rowHighlight(row)[j + model->coloff];
+            if (color != current_color)
+            {
+                current_color = color;
+                displayStr += syntaxToColor(color);
+            }
+            displayStr += model->rowRender(row)[model->coloff + j];
+        }
+    }
+    // Reset to default colors
+    displayStr.append("\x1b[0m", 5);
 }
 
 void TerminalView::drawStatusBar(std::string &displayStr)
@@ -166,12 +172,14 @@ void TerminalView::drawStatusBar(std::string &displayStr)
 void TerminalView::drawMessageBar(std::string &displayStr)
 {
     displayStr.append("\x1b[K", 3);
-    if(std::difftime(model->getStatusTime(), std::time(nullptr)) > 5) {
+    if (std::difftime(model->getStatusTime(), std::time(nullptr)) > 5)
+    {
         displayStr += "";
         return;
     }
 
-    if(model->isStatusError()) {
+    if (model->isStatusError())
+    {
         displayStr += "\x1b[31m";
     }
     int msglen = model->getStatusMsg().size();
@@ -180,27 +188,30 @@ void TerminalView::drawMessageBar(std::string &displayStr)
     std::string status = model->getStatusMsg();
     status.resize(msglen);
     displayStr += status;
+    displayStr += "\x1b[0m";
 }
 
-int TerminalView::syntaxToColor(int hl)
+std::string TerminalView::syntaxToColor(int hl)
 {
     switch (hl)
     {
     case SyntaxEngine::HL_COMMENT:
     case SyntaxEngine::HL_MLCOMMENT:
-        return 36;
+        return "\x1b[38;5;70m";
     case SyntaxEngine::HL_KEYWORD1:
-        return 33;
+        return "\x1b[38;5;177m";
     case SyntaxEngine::HL_KEYWORD2:
-        return 32;
+        return "\x1b[38;5;33m";
     case SyntaxEngine::HL_STRING:
-        return 35;
+        return "\x1b[38;5;202m";
     case SyntaxEngine::HL_NUMBER:
-        return 31;
+        return "\x1b[38;5;157m";
     case SyntaxEngine::HL_MATCH:
-        return 34;
+        return "\x1b[38;5;12m";
+    case SyntaxEngine::HL_ERROR:
+        return "\x1b[38;5;16m\x1b[48;5;124m";
     default:
-        return 37;
+        return "\x1b[38;5;15m";
     }
 }
 

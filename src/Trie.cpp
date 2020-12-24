@@ -28,7 +28,10 @@ void Trie::insert(const std::string &word, int nodeVal)
         }
         cur = cur->children[c].get();
     }
-    cur->val = nodeVal;
+    // Only default values can be overwritten
+    if(cur->val == -1) {
+        cur->val = nodeVal;
+    }
 }
 
 int Trie::get(const std::string& word) const
