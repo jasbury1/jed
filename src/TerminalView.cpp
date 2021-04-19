@@ -198,10 +198,14 @@ std::string TerminalView::syntaxToColor(int hl)
     case SyntaxEngine::HL_COMMENT:
     case SyntaxEngine::HL_MLCOMMENT:
         return "\x1b[38;5;70m";
+    case SyntaxEngine::HL_SPECIAL:
+        return "\x1b[38;5;128m";
     case SyntaxEngine::HL_KEYWORD1:
         return "\x1b[38;5;177m";
     case SyntaxEngine::HL_KEYWORD2:
         return "\x1b[38;5;33m";
+    case SyntaxEngine::HL_FUNCTION:
+        return "\x1b[38;5;229m";
     case SyntaxEngine::HL_STRING:
         return "\x1b[38;5;202m";
     case SyntaxEngine::HL_NUMBER:

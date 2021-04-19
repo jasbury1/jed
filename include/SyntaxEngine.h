@@ -13,14 +13,17 @@ public:
     enum highlightMode
     {
         HL_NORMAL = 0,
+        HL_SPECIAL,
         HL_COMMENT,
         HL_MLCOMMENT,
         HL_KEYWORD1,
         HL_KEYWORD2,
+        HL_FUNCTION,
         HL_STRING,
         HL_NUMBER,
         HL_MATCH,
-        HL_ERROR
+        HL_ERROR,
+        HL_WARN
     };
 
     SyntaxEngine();
@@ -45,7 +48,7 @@ private:
         "int", "long", "double", "float", "char", "unsigned", "signed", "void"};
 
     std::string brackets{"()[]{}"};
-    std::string separaters { ",.+-/*=~%<>;()[]{}"};
+    std::string separaters { ",.+-/*=~%<>;:()[]{}"};
 
     bool isSeparator(int c) const {return isspace(c) || separaters.find(c) != std::string::npos;}
 

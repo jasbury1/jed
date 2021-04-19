@@ -4,21 +4,20 @@
 
 SyntaxEngine::SyntaxEngine()
 {
-    
 }
 
 SyntaxEngine::~SyntaxEngine()
 {
 }
 
-void SyntaxEngine::setFileType(const std::string& extension)
+void SyntaxEngine::setFileType(const std::string &extension)
 {
-    for(const auto& keyword : keywords)
+    for (const auto &keyword : keywords)
     {
         termTrie.insert(keyword, HL_KEYWORD1);
     }
 
-    for(const auto& type : types)
+    for (const auto &type : types)
     {
         termTrie.insert(type, HL_KEYWORD2);
     }
@@ -36,6 +35,17 @@ void SyntaxEngine::updateSyntaxHighlight(std::vector<Model::erow> &rowList, std:
     bool inComment = (curRow.idx > 0 && rowList[curRow.idx - 1].commentOpen);
 
     std::size_t i = 0;
+    while(i < curRow.highlight.size() && isspace(curRow.render[i]))
+    {
+        ++i;
+    }
+    if(curRow.render[i] == '#')
+    {
+        std::fill(curRow.highlight.begin() + i, curRow.highlight.end(), HL_SPECIAL);
+        while(!isSeparator(curRow.render[i])) {
+            ++i;
+        }
+    }
     while (i < curRow.highlight.size())
     {
         auto c = curRow.render[i];
@@ -95,7 +105,8 @@ void SyntaxEngine::processString(std::size_t &idx, Model::erow &row) const
     auto c = row.render[idx];
     row.highlight[idx] = HL_STRING;
     ++idx;
-    if(idx == row.highlight.size()) {
+    if (idx == row.highlight.size())
+    {
         return;
     }
 
@@ -159,15 +170,21 @@ void SyntaxEngine::processMultilineComment(std::size_t &idx, bool &inComment, Mo
     }
 }
 
-void SyntaxEngine::processWord(std::size_t& idx, Model::erow &row) const
+void SyntaxEngine::processWord(std::size_t &idx, Model::erow &row) const
 {
     std::string word = "";
-    while(idx < row.highlight.size() && !isSeparator(row.render[idx])){
+    while (idx < row.highlight.size() && !isSeparator(row.render[idx]))
+    {
         word += row.render[idx];
         ++idx;
     }
     auto hlVal = termTrie.get(word);
-    if(hlVal != -1) {
-       std::fill_n(row.highlight.begin() + idx - word.size(), word.size(), hlVal); 
+    if (hlVal != -1)
+    {
+        std::fill_n(row.highlight.begin() + idx - word.size(), word.size(), hlVal);
+    }
+    else if (idx < row.highlight.size() && row.render[idx] == '(')
+    {
+        std::fill_n(row.highlight.begin() + idx - word.size(), word.size(), HL_FUNCTION);
     }
 }
